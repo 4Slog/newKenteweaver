@@ -1,6 +1,6 @@
-// lib/models/block_model.dart
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
 
 enum BlockType {
   pattern,
@@ -48,7 +48,7 @@ class BlockConnection {
       id: json['id'],
       name: json['name'],
       type: ConnectionType.values.firstWhere(
-            (e) => e.toString().split('.').last == json['type'],
+        (e) => e.toString().split('.').last == json['type'],
         orElse: () => ConnectionType.none,
       ),
       position: Offset(
@@ -103,7 +103,7 @@ class Block {
       name: json['name'],
       description: json['description'],
       type: BlockType.values.firstWhere(
-            (e) => e.toString().split('.').last == json['type'],
+        (e) => e.toString().split('.').last == json['type'],
         orElse: () => BlockType.pattern,
       ),
       subtype: json['subtype'],
@@ -162,20 +162,20 @@ class Block {
     }
 
     return Block(
-        id: map['id'],
-        name: map['name'] ?? 'Unnamed Block',
-        description: map['description'] ?? '',
-        type: type,
+      id: map['id'],
+      name: map['name'] ?? 'Unnamed Block',
+      description: map['description'] ?? '',
+      type: type,
       subtype: map['type'],
       properties: map['content'] ?? {},
       connections: connections,
       iconPath: map['icon'] ?? 'assets/images/blocks/default.png',
-      color: map['color'] != null 
-          ? Color(int.parse(map['color'].toString().replaceAll('#', '0xFF'))) 
+      color: map['color'] != null
+          ? Color(int.parse(map['color'].toString().replaceAll('#', '0xFF')))
           : Colors.grey,
     );
   }
-  
+
   // Convert back to old map structure for backward compatibility
   Map<String, dynamic> toMap() {
     return {
@@ -185,7 +185,7 @@ class Block {
       'content': properties,
     };
   }
-  
+
   // Create a copy with some properties changed
   Block copyWith({
     String? id,
@@ -215,15 +215,15 @@ class Block {
 // BlockCollection holds a set of blocks with their connections
 class BlockCollection {
   final List<Block> blocks;
-  
+
   BlockCollection({required this.blocks});
-  
+
   Map<String, dynamic> toJson() {
     return {
       'blocks': blocks.map((b) => b.toJson()).toList(),
     };
   }
-  
+
   factory BlockCollection.fromJson(Map<String, dynamic> json) {
     return BlockCollection(
       blocks: (json['blocks'] as List)
@@ -231,38 +231,38 @@ class BlockCollection {
           .toList(),
     );
   }
-  
+
   // Save to string
   String toJsonString() {
     return jsonEncode(toJson());
   }
-  
+
   // Load from string
   factory BlockCollection.fromJsonString(String jsonString) {
     final json = jsonDecode(jsonString);
     return BlockCollection.fromJson(json);
   }
-  
+
   // Convert legacy block list to BlockCollection
   factory BlockCollection.fromLegacyBlocks(List<Map<String, dynamic>> legacyBlocks) {
     final blocks = legacyBlocks.map((map) => Block.fromMap(map)).toList();
     return BlockCollection(blocks: blocks);
   }
-  
+
   // Convert back to legacy blocks for backward compatibility
   List<Map<String, dynamic>> toLegacyBlocks() {
     return blocks.map((block) => block.toMap()).toList();
   }
-  
+
   // Add a block
   void addBlock(Block block) {
     blocks.add(block);
   }
-  
+
   // Remove a block
   void removeBlock(String blockId) {
     blocks.removeWhere((b) => b.id == blockId);
-    
+
     // Also remove connections to this block
     for (final block in blocks) {
       for (final connection in block.connections) {
@@ -272,7 +272,7 @@ class BlockCollection {
       }
     }
   }
-  
+
   // Get a block by ID
   Block? getBlockById(String blockId) {
     try {
@@ -281,56 +281,68 @@ class BlockCollection {
       return null;
     }
   }
-  
+
   // Connect two blocks
-  bool connectBlocks(String sourceBlockId, String sourceConnectionId, 
-                   String targetBlockId, String targetConnectionId) {
+  bool connectBlocks(String sourceBlockId, String sourceConnectionId,
+      String targetBlockId, String targetConnectionId) {
     final sourceBlock = getBlockById(sourceBlockId);
     final targetBlock = getBlockById(targetBlockId);
-    
+
     if (sourceBlock == null || targetBlock == null) {
       return false;
     }
-    
+
     final sourceConnection = sourceBlock.connections
         .firstWhere((c) => c.id == sourceConnectionId);
     final targetConnection = targetBlock.connections
         .firstWhere((c) => c.id == targetConnectionId);
-    
+
     // Check if connection types are compatible
-    if ((sourceConnection.type == ConnectionType.output || 
-         sourceConnection.type == ConnectionType.both) &&
-        (targetConnection.type == ConnectionType.input || 
-         targetConnection.type == ConnectionType.both)) {
+    if ((sourceConnection.type == ConnectionType.output ||
+        sourceConnection.type == ConnectionType.both) &&
+        (targetConnection.type == ConnectionType.input ||
+            targetConnection.type == ConnectionType.both)) {
       sourceConnection.connectedToId = targetConnectionId;
       targetConnection.connectedToId = sourceConnectionId;
       return true;
     }
-    
+
     return false;
   }
-  
+
   // Disconnect a block connection
   void disconnectConnection(String blockId, String connectionId) {
     final block = getBlockById(blockId);
     if (block == null) return;
-    
+
     final connection = block.connections
         .firstWhere((c) => c.id == connectionId);
-    
+
     if (connection.connectedToId != null) {
       final connectedParts = connection.connectedToId!.split('_');
       final connectedBlockId = connectedParts.first;
       final connectedConnectionId = connection.connectedToId!;
-      
+
       final connectedBlock = getBlockById(connectedBlockId);
       if (connectedBlock != null) {
         final connectedConnection = connectedBlock.connections
             .firstWhere((c) => c.id == connectedConnectionId);
         connectedConnection.connectedToId = null;
       }
-      
+
       connection.connectedToId = null;
+    }
+  }
+
+  // Load blocks from JSON file
+  static Future<BlockCollection> loadFromJsonFile(String path) async {
+    try {
+      final jsonString = await rootBundle.loadString(path);
+      final jsonMap = json.decode(jsonString);
+      return BlockCollection.fromJson(jsonMap);
+    } catch (e) {
+      debugPrint('Error loading blocks from JSON file: $e');
+      return BlockCollection(blocks: []);
     }
   }
 }
