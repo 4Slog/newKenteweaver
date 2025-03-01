@@ -1,0 +1,34 @@
+// Define buildscript dependencies and repositories
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()  // Ensure all required repositories are included
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.1'  // Updated AGP version
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// Define the root project build directory
+rootProject.buildDir = "../build"
+
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+// Task to clean the build directory
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

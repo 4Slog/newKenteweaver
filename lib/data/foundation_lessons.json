@@ -1,0 +1,166 @@
+{
+  "lessons": [
+    {
+      "id": "basic_patterns_intro",
+      "title": "Introduction to Basic Patterns",
+      "type": "blockPlacement",
+      "description": "Learn about the fundamental Kente patterns: Dame-Dame (checker) and Kubi (vertical stripes).",
+      "objectives": [
+        "Understand the cultural significance of basic patterns",
+        "Learn to create the Dame-Dame pattern",
+        "Learn to create the Kubi pattern",
+        "Practice pattern placement and spacing"
+      ],
+      "requirements": {},
+      "difficulty": "basic",
+      "content": {
+        "introduction": {
+          "text": "Welcome to your first lesson in Kente weaving! We'll start with two essential patterns that form the foundation of Kente cloth design.",
+          "image": "assets/images/tutorial/basic_patterns_intro.png"
+        },
+        "steps": [
+          {
+            "type": "tutorial",
+            "title": "Dame-Dame Pattern",
+            "description": "The checker pattern, known as Dame-Dame, represents duality in Akan philosophy - the balance between opposing forces in life.",
+            "task": "Create a simple Dame-Dame pattern using black and gold colors.",
+            "requiredBlocks": ["checker_pattern", "color_black", "color_gold"],
+            "hint": "Start by placing the checker pattern block, then add black and gold color blocks."
+          },
+          {
+            "type": "practice",
+            "title": "Pattern Spacing",
+            "description": "The spacing between pattern elements is crucial in Kente weaving.",
+            "task": "Adjust the rows and columns to create a balanced Dame-Dame pattern.",
+            "requiredBlocks": ["rows", "columns"],
+            "hint": "Try setting both rows and columns to 8 for a balanced look."
+          },
+          {
+            "type": "tutorial",
+            "title": "Kubi Pattern",
+            "description": "The vertical stripes pattern, known as Kubi, symbolizes strength and spiritual growth.",
+            "task": "Create a Kubi pattern using three different colors.",
+            "requiredBlocks": ["stripes_vertical_pattern"],
+            "hint": "Use the vertical stripes pattern block with contrasting colors."
+          }
+        ],
+        "challenge": {
+          "title": "Combine Patterns",
+          "description": "Create a design that combines both Dame-Dame and Kubi patterns.",
+          "successCriteria": {
+            "patterns": ["checker_pattern", "stripes_vertical_pattern"],
+            "minColors": 3,
+            "complexity": 0.4
+          }
+        }
+      }
+    },
+    {
+      "id": "color_symbolism",
+      "title": "Color Symbolism in Kente",
+      "type": "colorTheory",
+      "description": "Explore the cultural significance of colors in Kente weaving.",
+      "objectives": [
+        "Learn the meaning of traditional Kente colors",
+        "Practice color combinations",
+        "Understand color harmony in patterns"
+      ],
+      "requirements": {
+        "lessons_completed": ["basic_patterns_intro"]
+      },
+      "difficulty": "basic",
+      "content": {
+        "introduction": {
+          "text": "Colors in Kente cloth are not just decorative - each color carries deep cultural meaning and spiritual significance.",
+          "image": "assets/images/tutorial/color_symbolism.png"
+        },
+        "steps": [
+          {
+            "type": "tutorial",
+            "title": "Gold and Yellow",
+            "description": "Gold represents royalty, wealth, and high status.",
+            "task": "Create a pattern using gold as the primary color.",
+            "requiredBlocks": ["color_gold"],
+            "hint": "Gold works well as a dominant color with darker accents."
+          },
+          {
+            "type": "tutorial",
+            "title": "Red and Black",
+            "description": "Red symbolizes spiritual energy and lifeblood, while black represents maturity and spiritual connection.",
+            "task": "Combine red and black in a balanced pattern.",
+            "requiredBlocks": ["color_red", "color_black"],
+            "hint": "Try alternating red and black in a striped pattern."
+          },
+          {
+            "type": "practice",
+            "title": "Color Harmony",
+            "description": "Create harmonious combinations using traditional colors.",
+            "task": "Create a pattern using at least three culturally significant colors.",
+            "hint": "Consider the meaning of each color in your combination."
+          }
+        ],
+        "challenge": {
+          "title": "Cultural Color Story",
+          "description": "Create a pattern whose colors tell a specific cultural story.",
+          "successCriteria": {
+            "minColors": 4,
+            "culturalAccuracy": 0.7
+          }
+        }
+      }
+    },
+    {
+      "id": "block_combinations",
+      "title": "Simple Block Combinations",
+      "type": "blockPlacement",
+      "description": "Learn to combine different blocks to create more complex patterns.",
+      "objectives": [
+        "Understand block relationships",
+        "Practice pattern repetition",
+        "Create compound patterns"
+      ],
+      "requirements": {
+        "lessons_completed": ["basic_patterns_intro", "color_symbolism"]
+      },
+      "difficulty": "basic",
+      "content": {
+        "introduction": {
+          "text": "By combining different blocks in creative ways, we can create more complex and meaningful patterns.",
+          "image": "assets/images/tutorial/block_combinations.png"
+        },
+        "steps": [
+          {
+            "type": "tutorial",
+            "title": "Pattern and Color Blocks",
+            "description": "Learn how pattern blocks interact with color blocks.",
+            "task": "Combine a pattern block with multiple color blocks.",
+            "hint": "The order of blocks affects the final pattern."
+          },
+          {
+            "type": "practice",
+            "title": "Using Repeats",
+            "description": "Use the repeat block to create recurring patterns.",
+            "task": "Create a repeating pattern with at least two colors.",
+            "requiredBlocks": ["repeats"],
+            "hint": "Try different repeat values to see how they affect the pattern."
+          },
+          {
+            "type": "tutorial",
+            "title": "Size and Spacing",
+            "description": "Learn how row and column blocks affect pattern appearance.",
+            "task": "Experiment with different row and column combinations.",
+            "hint": "Larger numbers create more detailed patterns."
+          }
+        ],
+        "challenge": {
+          "title": "Creative Combinations",
+          "description": "Create a unique pattern using all types of blocks.",
+          "successCriteria": {
+            "blockTypes": ["pattern", "color", "repeats", "rows", "columns"],
+            "complexity": 0.5
+          }
+        }
+      }
+    }
+  ]
+}

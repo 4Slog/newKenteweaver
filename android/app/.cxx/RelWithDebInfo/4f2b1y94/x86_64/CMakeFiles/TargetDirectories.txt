@@ -1,0 +1,2 @@
+C:/Users/sowup/dev/newKenteweaver/android/app/.cxx/RelWithDebInfo/4f2b1y94/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/sowup/dev/newKenteweaver/android/app/.cxx/RelWithDebInfo/4f2b1y94/x86_64/CMakeFiles/rebuild_cache.dir
