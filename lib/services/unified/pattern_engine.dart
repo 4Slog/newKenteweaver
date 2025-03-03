@@ -1,815 +1,754 @@
-import 'dart:math' as math;
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/block_model.dart';
 import '../../models/pattern_difficulty.dart';
-import '../../theme/app_theme.dart';
+import '../block_definition_service.dart';
 
 class PatternEngine {
-  static final PatternEngine _instance = PatternEngine._internal();
-  
-  factory PatternEngine() {
-    return _instance;
+  final BlockDefinitionService _definitionService = BlockDefinitionService();
+
+  // Initialize the engine
+  Future<void> initialize() async {
+    await _definitionService.loadDefinitions();
   }
-  
-  PatternEngine._internal();
 
   // Generate pattern from blocks
-  List<List<Color>> generatePatternFromBlocks(BlockCollection blockCollection, {
-    int rows = 16,
-    int columns = 16,
-  }) {
-    final result = List.generate(
+  List<List<Color>> generatePatternFromBlocks(
+      BlockCollection blockCollection, {
+        int rows = 16,
+        int columns = 16,
+      }) {
+    // Initialize empty pattern
+    List<List<Color>> pattern = List.generate(
       rows,
-      (i) => List.filled(columns, Colors.white),
+          (_) => List.generate(columns, (_) => Colors.white),
     );
-    
-    // Find root blocks (those without input connections)
-    final rootBlocks = blockCollection.blocks.where((block) {
-      return !block.connections.any((conn) => 
-        conn.type == ConnectionType.input && conn.connectedToId != null);
-    }).toList();
-    
+
+    // Find root blocks (those with no input connections)
+    final rootBlocks = _findRootBlocks(blockCollection);
+
     // Process each root block
     for (final rootBlock in rootBlocks) {
-      _processBlock(rootBlock, blockCollection, result, rows, columns);
+      _processBlock(rootBlock, pattern, blockCollection);
     }
-    
-    return result;
+
+    return pattern;
   }
-  
-  void _processBlock(Block block, BlockCollection blockCollection, 
-                   List<List<Color>> result, int rows, int columns) {
-    // Process based on block type
+
+  // Find blocks with no input connections
+  List<Block> _findRootBlocks(BlockCollection blockCollection) {
+    return blockCollection.blocks.where((block) {
+      final hasInputConnection = block.connections.any((conn) =>
+      conn.type == ConnectionType.input && conn.connectedToId != null);
+      return !hasInputConnection;
+    }).toList();
+  }
+
+  // Process a block and its connections
+  void _processBlock(
+      Block block,
+      List<List<Color>> pattern,
+      BlockCollection blockCollection, {
+        int startRow = 0,
+        int startCol = 0,
+        int endRow = 0,
+        int endCol = 0,
+        List<Color> colors = const [],
+      }
+      ) {
     switch (block.type) {
       case BlockType.pattern:
-        _applyPatternBlock(block, result, rows, columns);
+        _applyPatternBlock(block, pattern, startRow, startCol, endRow, endCol, colors);
         break;
       case BlockType.color:
-        _applyColorBlock(block, result, rows, columns);
+        _collectColor(block, colors);
         break;
       case BlockType.loop:
-        _applyLoopBlock(block, blockCollection, result, rows, columns);
+        _processLoopBlock(block, pattern, blockCollection, startRow, startCol, endRow, endCol, colors);
         break;
       case BlockType.row:
-        _applyRowBlock(block, blockCollection, result, rows, columns);
+        _processRowBlock(block, pattern, blockCollection, startRow, startCol, endRow, endCol, colors);
         break;
       case BlockType.column:
-        _applyColumnBlock(block, blockCollection, result, rows, columns);
-        break;
-      case BlockType.structure:
-        // Handle other structure blocks
-        break;
-    }
-    
-    // Follow output connections
-    final outputConns = block.connections
-        .where((conn) => conn.type == ConnectionType.output && conn.connectedToId != null);
-    
-    for (final conn in outputConns) {
-      if (conn.connectedToId != null) {
-        final targetConnParts = conn.connectedToId!.split('_');
-        final targetBlockId = targetConnParts.first;
-        final targetBlock = blockCollection.getBlockById(targetBlockId);
-        
-        if (targetBlock != null) {
-          _processBlock(targetBlock, blockCollection, result, rows, columns);
-        }
-      }
-    }
-  }
-  
-  void _applyPatternBlock(Block block, List<List<Color>> result, int rows, int columns) {
-    // Extract pattern type from subtype, handling different naming conventions
-    String patternType;
-    if (block.subtype.endsWith('_pattern')) {
-      patternType = block.subtype.replaceAll('_pattern', '');
-    } else {
-      patternType = block.subtype;
-    }
-    
-    // Get colors from block properties
-    final colors = _getColorsFromProperties(block.properties);
-    
-    // Generate the pattern
-    generatePattern(
-      patternType: patternType,
-      colors: colors,
-      rows: rows,
-      columns: columns,
-      pattern: result,
-    );
-  }
-  
-  void _applyColorBlock(Block block, List<List<Color>> result, int rows, int columns) {
-    final color = _getColorFromBlockType(block.subtype);
-    
-    // Apply the color to the entire pattern or follow specific rules
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < columns; j++) {
-        result[i][j] = color;
-      }
-    }
-  }
-  
-  void _applyLoopBlock(Block block, BlockCollection blockCollection, 
-                     List<List<Color>> result, int rows, int columns) {
-    final repeats = int.tryParse(block.properties['value'] ?? '3') ?? 3;
-    
-    // Find the body connection
-    final bodyConn = block.connections.firstWhere(
-      (conn) => conn.id.endsWith('_body'),
-      orElse: () => block.connections.firstWhere(
-        (conn) => conn.type == ConnectionType.output,
-        orElse: () => BlockConnection(
-          id: '', 
-          name: '', 
-          type: ConnectionType.none, 
-          position: Offset.zero
-        ),
-      ),
-    );
-    
-    if (bodyConn.connectedToId != null) {
-      final targetConnParts = bodyConn.connectedToId!.split('_');
-      final targetBlockId = targetConnParts.first;
-      final targetBlock = blockCollection.getBlockById(targetBlockId);
-      
-      if (targetBlock != null) {
-        for (int i = 0; i < repeats; i++) {
-          _processBlock(targetBlock, blockCollection, result, rows, columns);
-        }
-      }
-    }
-  }
-  
-  void _applyRowBlock(Block block, BlockCollection blockCollection, 
-                    List<List<Color>> result, int rows, int columns) {
-    // Find connected blocks and apply them in a row
-    final bodyConn = block.connections.firstWhere(
-      (conn) => conn.type == ConnectionType.output,
-      orElse: () => BlockConnection(
-        id: '', 
-        name: '', 
-        type: ConnectionType.none, 
-        position: Offset.zero
-      ),
-    );
-    
-    if (bodyConn.connectedToId != null) {
-      final targetConnParts = bodyConn.connectedToId!.split('_');
-      final targetBlockId = targetConnParts.first;
-      final targetBlock = blockCollection.getBlockById(targetBlockId);
-      
-      if (targetBlock != null) {
-        // Create a temporary result grid for the connected block
-        final tempResult = List.generate(
-          rows,
-          (i) => List.filled(columns, Colors.white),
-        );
-        
-        // Process the connected block into the temporary grid
-        _processBlock(targetBlock, blockCollection, tempResult, rows, columns);
-        
-        // Apply the temporary grid in a row pattern (horizontally)
-        final segmentWidth = columns ~/ 3;
-        for (int i = 0; i < rows; i++) {
-          for (int j = 0; j < columns; j++) {
-            final segmentIndex = j ~/ segmentWidth;
-            if (segmentIndex < 3) { // Limit to 3 segments
-              result[i][j] = tempResult[i][j % segmentWidth];
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  void _applyColumnBlock(Block block, BlockCollection blockCollection, 
-                       List<List<Color>> result, int rows, int columns) {
-    // Find connected blocks and apply them in a column
-    final bodyConn = block.connections.firstWhere(
-      (conn) => conn.type == ConnectionType.output,
-      orElse: () => BlockConnection(
-        id: '', 
-        name: '', 
-        type: ConnectionType.none, 
-        position: Offset.zero
-      ),
-    );
-    
-    if (bodyConn.connectedToId != null) {
-      final targetConnParts = bodyConn.connectedToId!.split('_');
-      final targetBlockId = targetConnParts.first;
-      final targetBlock = blockCollection.getBlockById(targetBlockId);
-      
-      if (targetBlock != null) {
-        // Create a temporary result grid for the connected block
-        final tempResult = List.generate(
-          rows,
-          (i) => List.filled(columns, Colors.white),
-        );
-        
-        // Process the connected block into the temporary grid
-        _processBlock(targetBlock, blockCollection, tempResult, rows, columns);
-        
-        // Apply the temporary grid in a column pattern (vertically)
-        final segmentHeight = rows ~/ 3;
-        for (int i = 0; i < rows; i++) {
-          final segmentIndex = i ~/ segmentHeight;
-          if (segmentIndex < 3) { // Limit to 3 segments
-            for (int j = 0; j < columns; j++) {
-              result[i][j] = tempResult[i % segmentHeight][j];
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  Color _getColorFromBlockType(String blockType) {
-    if (blockType.startsWith('shuttle_')) {
-      final colorName = blockType.split('_')[1];
-      
-      switch (colorName) {
-        case 'black': return Colors.black;
-        case 'blue': return Colors.blue;
-        case 'gold': return AppTheme.kenteGold;
-        case 'green': return Colors.green;
-        case 'orange': return Colors.orange;
-        case 'purple': return Colors.purple;
-        case 'red': return Colors.red;
-        case 'white': return Colors.white;
-        default: return Colors.grey;
-      }
-    }
-    
-    return Colors.grey;
-  }
-  
-  List<Color> _getColorsFromProperties(Map<String, dynamic> properties) {
-    if (properties.containsKey('colors')) {
-      return (properties['colors'] as List).map((c) => 
-        Color(int.parse(c.toString().replaceAll('#', '0xFF')))).toList();
-    }
-    
-    // Default colors if none specified
-    return [Colors.black, Colors.red, AppTheme.kenteGold];
-  }
-
-  // Original pattern generation method with updated signature
-  void generatePattern({
-    required String patternType,
-    required List<Color> colors,
-    required int rows,
-    required int columns,
-    List<List<Color>>? pattern,
-    int? repetitions,
-  }) {
-    if (colors.isEmpty) {
-      colors = [Colors.white];
-    }
-
-    final result = pattern ?? List.generate(
-      rows,
-      (i) => List.filled(columns, colors[0]),
-    );
-
-    switch (patternType) {
-      case 'checker':
-      case 'checker_pattern':
-        _generateCheckerPattern(result, colors);
-        break;
-      case 'stripes_vertical':
-      case 'vertical':
-        _generateVerticalStripes(result, colors);
-        break;
-      case 'stripes_horizontal':
-      case 'horizontal':
-        _generateHorizontalStripes(result, colors);
-        break;
-      case 'diamond':
-      case 'diamonds':
-      case 'diamonds_pattern':
-        _generateDiamondPattern(result, colors);
-        break;
-      case 'zigzag':
-      case 'zigzag_pattern':
-        _generateZigzagPattern(result, colors);
-        break;
-      case 'square':
-      case 'square_pattern':
-        _generateSquarePattern(result, colors);
+        _processColumnBlock(block, pattern, blockCollection, startRow, startCol, endRow, endCol, colors);
         break;
       default:
-        // Default to checker pattern if unknown pattern type
-        _generateCheckerPattern(result, colors);
+      // Handle other block types
         break;
     }
 
-    if (repetitions != null && repetitions > 1) {
-      // Apply repetition to the result pattern
-      final repeatedPattern = _applyRepetition(result, repetitions);
-      
-      // Copy the repeated pattern back to the result
-      for (int i = 0; i < math.min(result.length, repeatedPattern.length); i++) {
-        for (int j = 0; j < math.min(result[i].length, repeatedPattern[i].length); j++) {
-          result[i][j] = repeatedPattern[i][j];
+    // Process connected output blocks
+    _processConnectedBlocks(block, pattern, blockCollection, startRow, startCol, endRow, endCol, colors);
+  }
+
+  // Apply pattern block to the pattern grid
+  void _applyPatternBlock(
+      Block block,
+      List<List<Color>> pattern,
+      int startRow,
+      int startCol,
+      int endRow,
+      int endCol,
+      List<Color> colors,
+      ) {
+    // Determine pattern dimensions
+    final patternType = block.subtype;
+    final patternRows = endRow - startRow > 0 ? endRow - startRow : pattern.length;
+    final patternCols = endCol - startCol > 0 ? endCol - startCol : pattern[0].length;
+
+    // Get pattern definition
+    final patternDefs = _definitionService.getPatternDefinitions();
+    final patternDef = patternDefs.firstWhere(
+          (p) => p['id'] == patternType,
+      orElse: () => {},
+    );
+
+    // Use colors or default colors
+    final usedColors = colors.isNotEmpty ? colors : _getDefaultColors(patternDef);
+
+    // Apply the pattern based on its type
+    switch (patternType) {
+      case 'checker_pattern':
+        _applyCheckerPattern(pattern, startRow, startCol, patternRows, patternCols, usedColors);
+        break;
+      case 'zigzag_pattern':
+        _applyZigzagPattern(pattern, startRow, startCol, patternRows, patternCols, usedColors);
+        break;
+      case 'stripes_vertical_pattern':
+        _applyVerticalStripesPattern(pattern, startRow, startCol, patternRows, patternCols, usedColors);
+        break;
+      case 'stripes_horizontal_pattern':
+        _applyHorizontalStripesPattern(pattern, startRow, startCol, patternRows, patternCols, usedColors);
+        break;
+      case 'square_pattern':
+        _applySquarePattern(pattern, startRow, startCol, patternRows, patternCols, usedColors);
+        break;
+      case 'diamonds_pattern':
+        _applyDiamondPattern(pattern, startRow, startCol, patternRows, patternCols, usedColors);
+        break;
+      default:
+      // Apply simple checkerboard as fallback
+        _applyCheckerPattern(pattern, startRow, startCol, patternRows, patternCols, usedColors);
+        break;
+    }
+  }
+
+  // Collect colors from color blocks
+  void _collectColor(Block block, List<Color> colors) {
+    if (block.properties.containsKey('color')) {
+      final colorStr = block.properties['color'];
+      if (colorStr is String) {
+        if (colorStr.startsWith('#')) {
+          colors.add(Color(int.parse('0xFF${colorStr.substring(1)}')));
+        } else if (colorStr.startsWith('0x')) {
+          colors.add(Color(int.parse(colorStr)));
+        } else {
+          colors.add(block.color);
+        }
+      } else {
+        colors.add(block.color);
+      }
+    } else {
+      colors.add(block.color);
+    }
+  }
+
+  // Process loop blocks
+  void _processLoopBlock(
+      Block block,
+      List<List<Color>> pattern,
+      BlockCollection blockCollection,
+      int startRow,
+      int startCol,
+      int endRow,
+      int endCol,
+      List<Color> colors,
+      ) {
+    // Get loop count
+    final loopCount = int.tryParse(block.properties['value']?.toString() ?? '3') ?? 3;
+
+    // Find body connection
+    final bodyConn = block.connections.firstWhere(
+          (c) => c.id.contains('body'),
+      orElse: () => BlockConnection(
+        id: '',
+        name: '',
+        type: ConnectionType.none,
+        position: Offset.zero,
+      ),
+    );
+
+    // If there's a connected block to the body
+    if (bodyConn.connectedToId != null) {
+      final connParts = bodyConn.connectedToId!.split('_');
+      final connBlockId = connParts.first;
+      final bodyBlock = blockCollection.getBlockById(connBlockId);
+
+      if (bodyBlock != null) {
+        // Apply the body block multiple times
+        int patternSize = min(pattern.length, pattern[0].length) ~/ loopCount;
+
+        for (int i = 0; i < loopCount; i++) {
+          int loopStartRow = startRow + (i * patternSize);
+          int loopEndRow = loopStartRow + patternSize;
+
+          _processBlock(
+            bodyBlock,
+            pattern,
+            blockCollection,
+            startRow: loopStartRow,
+            startCol: startCol,
+            endRow: loopEndRow,
+            endCol: endCol,
+            colors: List.from(colors),
+          );
         }
       }
     }
   }
 
-  // Pattern Analysis
+  // Process row blocks
+  void _processRowBlock(
+      Block block,
+      List<List<Color>> pattern,
+      BlockCollection blockCollection,
+      int startRow,
+      int startCol,
+      int endRow,
+      int endCol,
+      List<Color> colors,
+      ) {
+    // Get row count
+    final size = int.tryParse(block.properties['value']?.toString() ?? '2') ?? 2;
+
+    // Process child blocks
+    final inputConn = block.connections.firstWhere(
+          (c) => c.type == ConnectionType.input,
+      orElse: () => BlockConnection(
+        id: '',
+        name: '',
+        type: ConnectionType.none,
+        position: Offset.zero,
+      ),
+    );
+
+    if (inputConn.connectedToId != null) {
+      final connParts = inputConn.connectedToId!.split('_');
+      final connBlockId = connParts.first;
+      final inputBlock = blockCollection.getBlockById(connBlockId);
+
+      if (inputBlock != null) {
+        final columnWidth = (pattern[0].length) ~/ size;
+
+        for (int i = 0; i < size; i++) {
+          int colStart = i * columnWidth;
+          int colEnd = (i + 1) * columnWidth;
+
+          _processBlock(
+            inputBlock,
+            pattern,
+            blockCollection,
+            startRow: startRow,
+            startCol: colStart,
+            endRow: endRow > 0 ? endRow : pattern.length,
+            endCol: colEnd,
+            colors: List.from(colors),
+          );
+        }
+      }
+    }
+  }
+
+  // Process column blocks
+  void _processColumnBlock(
+      Block block,
+      List<List<Color>> pattern,
+      BlockCollection blockCollection,
+      int startRow,
+      int startCol,
+      int endRow,
+      int endCol,
+      List<Color> colors,
+      ) {
+    // Get column count
+    final size = int.tryParse(block.properties['value']?.toString() ?? '2') ?? 2;
+
+    // Process child blocks
+    final inputConn = block.connections.firstWhere(
+          (c) => c.type == ConnectionType.input,
+      orElse: () => BlockConnection(
+        id: '',
+        name: '',
+        type: ConnectionType.none,
+        position: Offset.zero,
+      ),
+    );
+
+    if (inputConn.connectedToId != null) {
+      final connParts = inputConn.connectedToId!.split('_');
+      final connBlockId = connParts.first;
+      final inputBlock = blockCollection.getBlockById(connBlockId);
+
+      if (inputBlock != null) {
+        final rowHeight = (pattern.length) ~/ size;
+
+        for (int i = 0; i < size; i++) {
+          int rowStart = i * rowHeight;
+          int rowEnd = (i + 1) * rowHeight;
+
+          _processBlock(
+            inputBlock,
+            pattern,
+            blockCollection,
+            startRow: rowStart,
+            startCol: startCol,
+            endRow: rowEnd,
+            endCol: endCol > 0 ? endCol : pattern[0].length,
+            colors: List.from(colors),
+          );
+        }
+      }
+    }
+  }
+
+  // Process blocks connected to the output
+  void _processConnectedBlocks(
+      Block block,
+      List<List<Color>> pattern,
+      BlockCollection blockCollection,
+      int startRow,
+      int startCol,
+      int endRow,
+      int endCol,
+      List<Color> colors,
+      ) {
+    // Find output connection
+    final outputConn = block.connections.firstWhere(
+          (c) => c.id.contains('output') && c.type == ConnectionType.output,
+      orElse: () => BlockConnection(
+        id: '',
+        name: '',
+        type: ConnectionType.none,
+        position: Offset.zero,
+      ),
+    );
+
+    // If there's a connected block to the output
+    if (outputConn.connectedToId != null) {
+      final connParts = outputConn.connectedToId!.split('_');
+      final connBlockId = connParts.first;
+      final outputBlock = blockCollection.getBlockById(connBlockId);
+
+      if (outputBlock != null) {
+        _processBlock(
+          outputBlock,
+          pattern,
+          blockCollection,
+          startRow: startRow,
+          startCol: startCol,
+          endRow: endRow,
+          endCol: endCol,
+          colors: List.from(colors),
+        );
+      }
+    }
+  }
+
+  // Get default colors for a pattern
+  List<Color> _getDefaultColors(Map<String, dynamic> patternDef) {
+    final defaultColors = patternDef['defaultColors'] as List<dynamic>? ?? ['#000000', '#FFD700'];
+
+    return defaultColors.map<Color>((colorStr) {
+      if (colorStr is String && colorStr.startsWith('#')) {
+        return Color(int.parse('0xFF${colorStr.substring(1)}'));
+      }
+      return Colors.black;
+    }).toList();
+  }
+
+  // Pattern implementation methods
+  void _applyCheckerPattern(
+      List<List<Color>> pattern,
+      int startRow,
+      int startCol,
+      int rows,
+      int cols,
+      List<Color> colors,
+      ) {
+    if (colors.length < 2) {
+      colors = [Colors.black, Colors.white];
+    }
+
+    for (int r = 0; r < rows; r++) {
+      if (startRow + r >= pattern.length) break;
+
+      for (int c = 0; c < cols; c++) {
+        if (startCol + c >= pattern[0].length) break;
+
+        final colorIdx = (r + c) % 2;
+        pattern[startRow + r][startCol + c] = colors[colorIdx % colors.length];
+      }
+    }
+  }
+
+  void _applyZigzagPattern(
+      List<List<Color>> pattern,
+      int startRow,
+      int startCol,
+      int rows,
+      int cols,
+      List<Color> colors,
+      ) {
+    if (colors.isEmpty) {
+      colors = [Colors.black, Colors.white];
+    }
+
+    final zigzagWidth = 4; // Width of one complete zigzag
+
+    for (int r = 0; r < rows; r++) {
+      if (startRow + r >= pattern.length) break;
+
+      for (int c = 0; c < cols; c++) {
+        if (startCol + c >= pattern[0].length) break;
+
+        final zigzagPos = (c % zigzagWidth);
+        final rowOffset = zigzagPos < zigzagWidth / 2 ? zigzagPos : zigzagWidth - zigzagPos - 1;
+
+        final colorIdx = (r + rowOffset) % colors.length;
+        pattern[startRow + r][startCol + c] = colors[colorIdx];
+      }
+    }
+  }
+
+  void _applyVerticalStripesPattern(
+      List<List<Color>> pattern,
+      int startRow,
+      int startCol,
+      int rows,
+      int cols,
+      List<Color> colors,
+      ) {
+    if (colors.isEmpty) {
+      colors = [Colors.black, Colors.white];
+    }
+
+    for (int r = 0; r < rows; r++) {
+      if (startRow + r >= pattern.length) break;
+
+      for (int c = 0; c < cols; c++) {
+        if (startCol + c >= pattern[0].length) break;
+
+        final colorIdx = c % colors.length;
+        pattern[startRow + r][startCol + c] = colors[colorIdx];
+      }
+    }
+  }
+
+  void _applyHorizontalStripesPattern(
+      List<List<Color>> pattern,
+      int startRow,
+      int startCol,
+      int rows,
+      int cols,
+      List<Color> colors,
+      ) {
+    if (colors.isEmpty) {
+      colors = [Colors.black, Colors.white];
+    }
+
+    for (int r = 0; r < rows; r++) {
+      if (startRow + r >= pattern.length) break;
+
+      final colorIdx = r % colors.length;
+      final rowColor = colors[colorIdx];
+
+      for (int c = 0; c < cols; c++) {
+        if (startCol + c >= pattern[0].length) break;
+
+        pattern[startRow + r][startCol + c] = rowColor;
+      }
+    }
+  }
+
+  void _applySquarePattern(
+      List<List<Color>> pattern,
+      int startRow,
+      int startCol,
+      int rows,
+      int cols,
+      List<Color> colors,
+      ) {
+    if (colors.isEmpty) {
+      colors = [Colors.black, Colors.white];
+    }
+
+    final centerR = startRow + (rows ~/ 2);
+    final centerC = startCol + (cols ~/ 2);
+    final maxDist = min(rows, cols) ~/ 2;
+
+    for (int r = 0; r < rows; r++) {
+      if (startRow + r >= pattern.length) break;
+
+      for (int c = 0; c < cols; c++) {
+        if (startCol + c >= pattern[0].length) break;
+
+        final rDist = (startRow + r - centerR).abs();
+        final cDist = (startCol + c - centerC).abs();
+        final maxD = max(rDist, cDist);
+
+        final colorIdx = (maxD * colors.length ~/ maxDist) % colors.length;
+        pattern[startRow + r][startCol + c] = colors[colorIdx];
+      }
+    }
+  }
+
+  void _applyDiamondPattern(
+      List<List<Color>> pattern,
+      int startRow,
+      int startCol,
+      int rows,
+      int cols,
+      List<Color> colors,
+      ) {
+    if (colors.isEmpty) {
+      colors = [Colors.black, Colors.white];
+    }
+
+    final centerR = startRow + (rows ~/ 2);
+    final centerC = startCol + (cols ~/ 2);
+    final maxDist = min(rows, cols) ~/ 2;
+
+    for (int r = 0; r < rows; r++) {
+      if (startRow + r >= pattern.length) break;
+
+      for (int c = 0; c < cols; c++) {
+        if (startCol + c >= pattern[0].length) break;
+
+        final rDist = (startRow + r - centerR).abs();
+        final cDist = (startCol + c - centerC).abs();
+        final dist = rDist + cDist;
+
+        final colorIdx = (dist * colors.length ~/ (maxDist * 2)) % colors.length;
+        pattern[startRow + r][startCol + c] = colors[colorIdx];
+      }
+    }
+  }
+
+  // Analyze a pattern
   Map<String, dynamic> analyzePattern({
     required List<List<Color>> pattern,
     required PatternDifficulty difficulty,
   }) {
-    final complexity = _calculateComplexity(pattern);
-    final colorVariety = _analyzeColorVariety(pattern);
-    final symmetry = _checkSymmetry(pattern);
-    final culturalScore = _calculateCulturalScore(pattern, difficulty);
+    double complexity = _calculateComplexity(pattern);
+    double colorVariety = _calculateColorVariety(pattern);
+    double symmetry = _calculateSymmetry(pattern);
+    double culturalScore = _estimateCulturalScore(pattern, complexity, colorVariety);
 
     return {
       'complexity': complexity,
       'color_variety': colorVariety,
       'symmetry': symmetry,
       'cultural_score': culturalScore,
-      'suggestions': _generateSuggestions(
-        complexity,
-        colorVariety,
-        symmetry,
-        culturalScore,
-        difficulty,
-      ),
+      'suggestions': _generateSuggestions(pattern, complexity, colorVariety, difficulty),
     };
   }
-  
+
+  // Calculate pattern complexity
+  double _calculateComplexity(List<List<Color>> pattern) {
+    // Count color transitions
+    int transitions = 0;
+    int totalCells = 0;
+
+    for (int r = 0; r < pattern.length; r++) {
+      for (int c = 0; c < pattern[r].length; c++) {
+        totalCells++;
+
+        // Check horizontal transition
+        if (c < pattern[r].length - 1 && pattern[r][c] != pattern[r][c + 1]) {
+          transitions++;
+        }
+
+        // Check vertical transition
+        if (r < pattern.length - 1 && pattern[r][c] != pattern[r + 1][c]) {
+          transitions++;
+        }
+      }
+    }
+
+    // Normalize complexity (0-1)
+    final maxTransitions = totalCells * 2;
+    return min(1.0, transitions / maxTransitions);
+  }
+
+  // Calculate color variety
+  double _calculateColorVariety(List<List<Color>> pattern) {
+    Set<Color> uniqueColors = {};
+
+    for (final row in pattern) {
+      for (final color in row) {
+        uniqueColors.add(color);
+      }
+    }
+
+    // Normalize variety (0-1)
+    return min(1.0, uniqueColors.length / 8); // Assuming 8 is max variety
+  }
+
+  // Calculate symmetry
+  double _calculateSymmetry(List<List<Color>> pattern) {
+    int symmetricPoints = 0;
+    int totalPoints = 0;
+
+    // Check horizontal symmetry
+    final rows = pattern.length;
+    final cols = pattern[0].length;
+
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols ~/ 2; c++) {
+        totalPoints++;
+        if (pattern[r][c] == pattern[r][cols - c - 1]) {
+          symmetricPoints++;
+        }
+      }
+    }
+
+    // Check vertical symmetry
+    for (int c = 0; c < cols; c++) {
+      for (int r = 0; r < rows ~/ 2; r++) {
+        totalPoints++;
+        if (pattern[r][c] == pattern[rows - r - 1][c]) {
+          symmetricPoints++;
+        }
+      }
+    }
+
+    // Normalize symmetry (0-1)
+    return totalPoints > 0 ? symmetricPoints / totalPoints : 0.0;
+  }
+
+  // Estimate cultural score
+  double _estimateCulturalScore(
+      List<List<Color>> pattern,
+      double complexity,
+      double colorVariety,
+      ) {
+    // Combine complexity and color variety as a proxy for cultural accuracy
+    return (complexity * 0.6 + colorVariety * 0.4);
+  }
+
+  // Generate suggestions based on pattern analysis
+  List<String> _generateSuggestions(
+      List<List<Color>> pattern,
+      double complexity,
+      double colorVariety,
+      PatternDifficulty difficulty,
+      ) {
+    List<String> suggestions = [];
+
+    // Complexity suggestions
+    if (complexity < 0.3) {
+      suggestions.add('Try adding more pattern variations to increase complexity');
+    } else if (complexity > 0.8) {
+      suggestions.add('Your pattern has good complexity');
+    }
+
+    // Color variety suggestions
+    if (colorVariety < 0.3) {
+      suggestions.add('Consider adding more colors for traditional Kente richness');
+    } else if (colorVariety > 0.7) {
+      suggestions.add('Good use of multiple colors');
+    }
+
+    // Difficulty-based suggestions
+    switch (difficulty) {
+      case PatternDifficulty.basic:
+        if (complexity < 0.2) {
+          suggestions.add('Try combining different blocks to create more interesting patterns');
+        }
+        break;
+      case PatternDifficulty.intermediate:
+        if (complexity < 0.4) {
+          suggestions.add('Try using loop blocks to create repetitive patterns');
+        }
+        break;
+      case PatternDifficulty.advanced:
+        if (colorVariety < 0.5) {
+          suggestions.add('Use more color combinations for advanced patterns');
+        }
+        break;
+      case PatternDifficulty.master:
+        if (complexity < 0.6 || colorVariety < 0.6) {
+          suggestions.add('Master patterns typically have high complexity and color variety');
+        }
+        break;
+    }
+
+    return suggestions;
+  }
+
   // Analyze a block collection
   Map<String, dynamic> analyzeBlockCollection(
-    BlockCollection blockCollection,
-    PatternDifficulty difficulty,
-  ) {
-    // Generate the pattern from blocks
-    final pattern = generatePatternFromBlocks(blockCollection);
-    
-    // Analyze the generated pattern
-    final patternAnalysis = analyzePattern(
-      pattern: pattern,
-      difficulty: difficulty,
-    );
-    
-    // Add block-specific analysis
-    int blockTypeVariety = _getBlockTypeVariety(blockCollection);
-    int connectionCount = _getConnectionCount(blockCollection);
-    
-    return {
-      ...patternAnalysis,
-      'block_count': blockCollection.blocks.length,
-      'block_type_variety': blockTypeVariety,
-      'connection_count': connectionCount,
-      'block_suggestions': _generateBlockSuggestions(
-        blockCollection,
-        difficulty,
-        blockTypeVariety,
-        connectionCount,
-      ),
-    };
-  }
-  
-  int _getBlockTypeVariety(BlockCollection blockCollection) {
-    final types = blockCollection.blocks.map((b) => b.type).toSet();
-    return types.length;
-  }
-  
-  int _getConnectionCount(BlockCollection blockCollection) {
-    int count = 0;
+      BlockCollection blockCollection,
+      PatternDifficulty difficulty,
+      ) {
+    // Count block types
+    int patternBlocks = 0;
+    int colorBlocks = 0;
+    int loopBlocks = 0;
+    int structureBlocks = 0;
+
     for (final block in blockCollection.blocks) {
-      count += block.connections.where((c) => c.connectedToId != null).length;
-    }
-    return count;
-  }
-  
-  List<String> _generateBlockSuggestions(
-    BlockCollection blockCollection,
-    PatternDifficulty difficulty,
-    int blockTypeVariety,
-    int connectionCount,
-  ) {
-    final suggestions = <String>[];
-    
-    if (blockCollection.blocks.isEmpty) {
-      suggestions.add('Start by adding pattern blocks to your workspace');
-      return suggestions;
-    }
-    
-    // Check for pattern blocks
-    if (!blockCollection.blocks.any((b) => b.type == BlockType.pattern)) {
-      suggestions.add('Add a pattern block to define your design');
-    }
-    
-    // Check for color blocks
-    if (!blockCollection.blocks.any((b) => b.type == BlockType.color)) {
-      suggestions.add('Add color blocks to bring your pattern to life');
-    }
-    
-    // Suggest more variety based on difficulty
-    if (blockTypeVariety < 3 && 
-        (difficulty == PatternDifficulty.intermediate || 
-         difficulty == PatternDifficulty.advanced || 
-         difficulty == PatternDifficulty.master)) {
-      suggestions.add('Try using a greater variety of block types');
-    }
-    
-    // Suggest more connections for advanced difficulties
-    if (connectionCount < 3 && 
-        (difficulty == PatternDifficulty.advanced || 
-         difficulty == PatternDifficulty.master)) {
-      suggestions.add('Connect more blocks together to create complex patterns');
-    }
-    
-    // Suggest loops for advanced patterns
-    if (!blockCollection.blocks.any((b) => b.type == BlockType.loop) && 
-        (difficulty == PatternDifficulty.advanced || 
-         difficulty == PatternDifficulty.master)) {
-      suggestions.add('Use loop blocks to create repeating patterns');
-    }
-    
-    if (suggestions.isEmpty) {
-      suggestions.add('Your block arrangement looks good!');
-    }
-    
-    return suggestions;
-  }
-
-  // Pattern Validation
-  bool validatePattern({
-    required List<List<Color>> pattern,
-    required PatternDifficulty difficulty,
-    Map<String, dynamic>? requirements,
-  }) {
-    if (pattern.isEmpty || pattern[0].isEmpty) {
-      return false;
-    }
-
-    final analysis = analyzePattern(
-      pattern: pattern,
-      difficulty: difficulty,
-    );
-
-    // Basic validation
-    if (analysis['complexity'] < _getMinComplexity(difficulty)) {
-      return false;
-    }
-
-    if (analysis['color_variety'] < _getMinColorVariety(difficulty)) {
-      return false;
-    }
-
-    // Check specific requirements if provided
-    if (requirements != null) {
-      return _checkRequirements(pattern, requirements);
-    }
-
-    return true;
-  }
-  
-  // Validate a block collection
-  bool validateBlockCollection(
-    BlockCollection blockCollection,
-    PatternDifficulty difficulty, {
-    Map<String, dynamic>? requirements,
-  }) {
-    // Generate the pattern
-    final pattern = generatePatternFromBlocks(blockCollection);
-    
-    // Basic validation of the pattern
-    final isPatternValid = validatePattern(
-      pattern: pattern,
-      difficulty: difficulty,
-      requirements: requirements,
-    );
-    
-    if (!isPatternValid) {
-      return false;
-    }
-    
-    // Additional block-specific validation
-    final minBlocks = _getMinBlocks(difficulty);
-    if (blockCollection.blocks.length < minBlocks) {
-      return false;
-    }
-    
-    // Check for required block types based on difficulty
-    if (difficulty == PatternDifficulty.intermediate && 
-        !blockCollection.blocks.any((b) => b.type == BlockType.pattern)) {
-      return false;
-    }
-    
-    if (difficulty == PatternDifficulty.advanced && 
-        (!blockCollection.blocks.any((b) => b.type == BlockType.pattern) || 
-         !blockCollection.blocks.any((b) => b.type == BlockType.color))) {
-      return false;
-    }
-    
-    if (difficulty == PatternDifficulty.master && 
-        (!blockCollection.blocks.any((b) => b.type == BlockType.pattern) || 
-         !blockCollection.blocks.any((b) => b.type == BlockType.color) || 
-         !blockCollection.blocks.any((b) => b.type == BlockType.loop))) {
-      return false;
-    }
-    
-    return true;
-  }
-  
-  int _getMinBlocks(PatternDifficulty difficulty) {
-    switch (difficulty) {
-      case PatternDifficulty.basic:
-        return 1;
-      case PatternDifficulty.intermediate:
-        return 3;
-      case PatternDifficulty.advanced:
-        return 5;
-      case PatternDifficulty.master:
-        return 8;
-    }
-  }
-
-  // Pattern Generation Helpers
-  void _generateCheckerPattern(List<List<Color>> pattern, List<Color> colors) {
-    final rows = pattern.length;
-    final cols = pattern[0].length;
-
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        pattern[i][j] = colors[(i + j) % colors.length];
-      }
-    }
-  }
-
-  void _generateVerticalStripes(List<List<Color>> pattern, List<Color> colors) {
-    final rows = pattern.length;
-    final cols = pattern[0].length;
-
-    for (int j = 0; j < cols; j++) {
-      final color = colors[j % colors.length];
-      for (int i = 0; i < rows; i++) {
-        pattern[i][j] = color;
-      }
-    }
-  }
-
-  void _generateHorizontalStripes(List<List<Color>> pattern, List<Color> colors) {
-    final rows = pattern.length;
-    final cols = pattern[0].length;
-
-    for (int i = 0; i < rows; i++) {
-      final color = colors[i % colors.length];
-      for (int j = 0; j < cols; j++) {
-        pattern[i][j] = color;
-      }
-    }
-  }
-
-  void _generateDiamondPattern(List<List<Color>> pattern, List<Color> colors) {
-    final rows = pattern.length;
-    final cols = pattern[0].length;
-    final centerX = cols ~/ 2;
-    final centerY = rows ~/ 2;
-
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        final distance = (i - centerY).abs() + (j - centerX).abs();
-        pattern[i][j] = colors[distance % colors.length];
-      }
-    }
-  }
-
-  void _generateZigzagPattern(List<List<Color>> pattern, List<Color> colors) {
-    final rows = pattern.length;
-    final cols = pattern[0].length;
-
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        final index = ((i + j) ~/ 2) % colors.length;
-        pattern[i][j] = colors[index];
-      }
-    }
-  }
-
-  void _generateSquarePattern(List<List<Color>> pattern, List<Color> colors) {
-    final rows = pattern.length;
-    final cols = pattern[0].length;
-    final squareSize = math.min(rows, cols) ~/ 4;
-
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        final ring = math.min(
-          math.min(i, rows - 1 - i),
-          math.min(j, cols - 1 - j),
-        ) ~/ squareSize;
-        pattern[i][j] = colors[ring % colors.length];
-      }
-    }
-  }
-
-  /// Apply repetition to a pattern
-  /// 
-  /// This creates a new pattern with the base pattern repeated multiple times
-  /// If the repetition would make the pattern too large, it will be scaled down
-  List<List<Color>> _applyRepetition(
-    List<List<Color>> basePattern,
-    int repetitions,
-  ) {
-    final baseRows = basePattern.length;
-    final baseCols = basePattern[0].length;
-    
-    // Limit the size of the repeated pattern to avoid memory issues
-    final maxRows = math.min(baseRows * repetitions, 64);
-    final maxCols = math.min(baseCols * repetitions, 64);
-    
-    final newPattern = List.generate(
-      maxRows,
-      (i) => List.filled(maxCols, Colors.white),
-    );
-
-    // Apply the repetition
-    for (int i = 0; i < maxRows; i++) {
-      for (int j = 0; j < maxCols; j++) {
-        newPattern[i][j] = basePattern[i % baseRows][j % baseCols];
+      switch (block.type) {
+        case BlockType.pattern:
+          patternBlocks++;
+          break;
+        case BlockType.color:
+          colorBlocks++;
+          break;
+        case BlockType.loop:
+          loopBlocks++;
+          break;
+        case BlockType.row:
+        case BlockType.column:
+          structureBlocks++;
+          break;
+        default:
+          break;
       }
     }
 
-    return newPattern;
-  }
+    // Calculate metrics
+    double blockVariety = min(1.0, (patternBlocks > 0 ? 0.25 : 0) +
+        (colorBlocks > 0 ? 0.25 : 0) +
+        (loopBlocks > 0 ? 0.25 : 0) +
+        (structureBlocks > 0 ? 0.25 : 0));
 
-  // Pattern Analysis Helpers
-  double _calculateComplexity(List<List<Color>> pattern) {
-    final rows = pattern.length;
-    final cols = pattern[0].length;
-    final totalCells = rows * cols;
-    
-    // Count unique color transitions
-    var transitions = 0;
-    final Set<Color> uniqueColors = {};
+    double complexity = min(1.0, 0.2 * patternBlocks +
+        0.1 * colorBlocks +
+        0.3 * loopBlocks +
+        0.2 * structureBlocks);
 
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        uniqueColors.add(pattern[i][j]);
-        if (j < cols - 1 && pattern[i][j] != pattern[i][j + 1]) {
-          transitions++;
-        }
-        if (i < rows - 1 && pattern[i][j] != pattern[i + 1][j]) {
-          transitions++;
+    // Calculate connection complexity
+    int connections = 0;
+    for (final block in blockCollection.blocks) {
+      for (final conn in block.connections) {
+        if (conn.connectedToId != null) {
+          connections++;
         }
       }
     }
 
-    final colorVariety = uniqueColors.length / math.min(totalCells, 10);
-    final transitionDensity = transitions / (totalCells * 2);
+    double connectionComplexity = min(1.0, connections / 10.0); // Assuming 10 connections is complex
+    complexity = (complexity + connectionComplexity) / 2;
 
-    return (colorVariety * 0.4 + transitionDensity * 0.6).clamp(0.0, 1.0);
-  }
+    double culturalScore = min(1.0, (patternBlocks * 0.3 + colorBlocks * 0.4) / 5.0);
 
-  double _analyzeColorVariety(List<List<Color>> pattern) {
-    final Set<Color> uniqueColors = {};
-    for (final row in pattern) {
-      uniqueColors.addAll(row);
-    }
-    return math.min(1.0, uniqueColors.length / 5);
-  }
-
-  double _checkSymmetry(List<List<Color>> pattern) {
-    final rows = pattern.length;
-    final cols = pattern[0].length;
-    var symmetricCells = 0;
-    final totalCells = rows * cols;
-
-    // Horizontal symmetry
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols ~/ 2; j++) {
-        if (pattern[i][j] == pattern[i][cols - 1 - j]) {
-          symmetricCells++;
-        }
-      }
-    }
-
-    // Vertical symmetry
-    for (int j = 0; j < cols; j++) {
-      for (int i = 0; i < rows ~/ 2; i++) {
-        if (pattern[i][j] == pattern[rows - 1 - i][j]) {
-          symmetricCells++;
-        }
-      }
-    }
-
-    return (symmetricCells / totalCells).clamp(0.0, 1.0);
-  }
-
-  double _calculateCulturalScore(
-    List<List<Color>> pattern,
-    PatternDifficulty difficulty,
-  ) {
-    // Analyze traditional color combinations
-    final hasGold = pattern.any((row) => row.contains(AppTheme.kenteGold));
-    final hasRed = pattern.any((row) => row.contains(Colors.red));
-    final hasBlack = pattern.any((row) => row.contains(Colors.black));
-    
-    var score = 0.0;
-    if (hasGold) score += 0.3;
-    if (hasRed) score += 0.2;
-    if (hasBlack) score += 0.2;
-
-    // Analyze pattern complexity based on difficulty
-    final complexity = _calculateComplexity(pattern);
-    score += complexity * 0.3;
-
-    return score.clamp(0.0, 1.0);
-  }
-
-  List<String> _generateSuggestions(
-    double complexity,
-    double colorVariety,
-    double symmetry,
-    double culturalScore,
-    PatternDifficulty difficulty,
-  ) {
-    final suggestions = <String>[];
-
-    if (complexity < _getMinComplexity(difficulty)) {
-      suggestions.add('Try adding more pattern variations');
-    }
-
-    if (colorVariety < _getMinColorVariety(difficulty)) {
-      suggestions.add('Consider using more traditional colors');
-    }
-
-    if (symmetry < 0.5) {
-      suggestions.add('Your pattern could be more balanced');
-    }
-
-    if (culturalScore < 0.6) {
-      suggestions.add('Incorporate more traditional Kente elements');
-    }
-
-    return suggestions;
-  }
-
-  double _getMinComplexity(PatternDifficulty difficulty) {
-    switch (difficulty) {
-      case PatternDifficulty.basic:
-        return 0.3;
-      case PatternDifficulty.intermediate:
-        return 0.5;
-      case PatternDifficulty.advanced:
-        return 0.7;
-      case PatternDifficulty.master:
-        return 0.8;
-    }
-  }
-
-  double _getMinColorVariety(PatternDifficulty difficulty) {
-    switch (difficulty) {
-      case PatternDifficulty.basic:
-        return 0.2;
-      case PatternDifficulty.intermediate:
-        return 0.4;
-      case PatternDifficulty.advanced:
-        return 0.6;
-      case PatternDifficulty.master:
-        return 0.8;
-    }
-  }
-
-  bool _checkRequirements(
-    List<List<Color>> pattern,
-    Map<String, dynamic> requirements,
-  ) {
-    if (requirements.containsKey('min_colors')) {
-      final uniqueColors = Set<Color>.from(
-        pattern.expand((row) => row),
-      );
-      if (uniqueColors.length < requirements['min_colors']) {
-        return false;
-      }
-    }
-
-    if (requirements.containsKey('min_complexity')) {
-      final complexity = _calculateComplexity(pattern);
-      if (complexity < requirements['min_complexity']) {
-        return false;
-      }
-    }
-
-    if (requirements.containsKey('required_colors')) {
-      final requiredColors = requirements['required_colors'] as List<Color>;
-      final patternColors = Set<Color>.from(
-        pattern.expand((row) => row),
-      );
-      if (!requiredColors.every(patternColors.contains)) {
-        return false;
-      }
-    }
-
-    return true;
+    return {
+      'complexity': complexity,
+      'color_variety': min(1.0, colorBlocks / 6.0),
+      'block_variety': blockVariety,
+      'cultural_score': culturalScore,
+      'symmetry': 0.5, // Default value
+    };
   }
 }

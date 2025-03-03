@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "blocks": [
     {
       "id": "checker_pattern",
@@ -132,6 +132,50 @@
       "iconPath": "assets/images/blocks/diamonds_pattern.png",
       "culturalMeaning": "Symbolizes democratic principles and the importance of collective wisdom",
       "difficulty": "intermediate"
+    },
+    {
+      "id": "adinkra_pattern",
+      "name": "Adinkra Pattern",
+      "description": "Traditional symbols with specific meanings in Akan culture",
+      "type": "pattern",
+      "subtype": "adinkra_pattern",
+      "properties": {
+        "pattern": "adinkra",
+        "colors": ["#000000", "#FFD700", "#8B4513"]
+      },
+      "connections": [
+        {
+          "id": "adinkra_pattern_output",
+          "name": "Output",
+          "type": "output",
+          "position": {"x": 1.0, "y": 0.5}
+        }
+      ],
+      "iconPath": "assets/images/blocks/adinkra_pattern.png",
+      "culturalMeaning": "Adinkra symbols represent concepts and aphorisms that communicate traditional wisdom",
+      "difficulty": "advanced"
+    },
+    {
+      "id": "ahwene_pa_pattern",
+      "name": "Ahwene Pa Pattern",
+      "description": "Complex symmetrical pattern representing excellence",
+      "type": "pattern",
+      "subtype": "ahwene_pa_pattern",
+      "properties": {
+        "pattern": "ahwene_pa",
+        "colors": ["#000000", "#FFD700", "#FF0000", "#1976D2"]
+      },
+      "connections": [
+        {
+          "id": "ahwene_pa_pattern_output",
+          "name": "Output",
+          "type": "output",
+          "position": {"x": 1.0, "y": 0.5}
+        }
+      ],
+      "iconPath": "assets/images/blocks/ahwene_pa_pattern.png",
+      "culturalMeaning": "Ahwene Pa means 'good beads' and symbolizes excellence, beauty, and high quality",
+      "difficulty": "master"
     },
     {
       "id": "shuttle_black",
@@ -302,10 +346,52 @@
       "difficulty": "basic"
     },
     {
+      "id": "shuttle_brown",
+      "name": "Brown Thread",
+      "description": "Brown thread used in traditional Kente weaving",
+      "type": "color",
+      "subtype": "shuttle_brown",
+      "properties": {
+        "color": "#8B4513"
+      },
+      "connections": [
+        {
+          "id": "shuttle_brown_output",
+          "name": "Output",
+          "type": "output",
+          "position": {"x": 1.0, "y": 0.5}
+        }
+      ],
+      "iconPath": "assets/images/blocks/shuttle_brown.png",
+      "culturalMeaning": "Symbolizes connection to the earth, healing, and mother nature",
+      "difficulty": "advanced"
+    },
+    {
+      "id": "shuttle_silver",
+      "name": "Silver Thread",
+      "description": "Silver thread used in ceremonial Kente weaving",
+      "type": "color",
+      "subtype": "shuttle_silver",
+      "properties": {
+        "color": "#C0C0C0"
+      },
+      "connections": [
+        {
+          "id": "shuttle_silver_output",
+          "name": "Output",
+          "type": "output",
+          "position": {"x": 1.0, "y": 0.5}
+        }
+      ],
+      "iconPath": "assets/images/blocks/shuttle_silver.png",
+      "culturalMeaning": "Represents serenity, purity, joy, and the moon's divine feminine energy",
+      "difficulty": "master"
+    },
+    {
       "id": "loop_block",
       "name": "Loop Block",
       "description": "Repeats the connected pattern multiple times",
-      "type": "loop",
+      "type": "structure",
       "subtype": "loop_block",
       "properties": {
         "value": "3"
@@ -338,9 +424,11 @@
       "id": "row_block",
       "name": "Row Block",
       "description": "Arranges patterns in a horizontal row",
-      "type": "row",
+      "type": "structure",
       "subtype": "row_block",
-      "properties": {},
+      "properties": {
+        "value": "2"
+      },
       "connections": [
         {
           "id": "row_block_input",
@@ -363,9 +451,11 @@
       "id": "column_block",
       "name": "Column Block",
       "description": "Arranges patterns in a vertical column",
-      "type": "column",
+      "type": "structure",
       "subtype": "column_block",
-      "properties": {},
+      "properties": {
+        "value": "2"
+      },
       "connections": [
         {
           "id": "column_block_input",
@@ -383,6 +473,106 @@
       "iconPath": "assets/images/blocks/column_icon.png",
       "culturalMeaning": "Represents the vertical warp threads that form the foundation of Kente cloth",
       "difficulty": "intermediate"
+    },
+    {
+      "id": "alternate_block",
+      "name": "Alternating Block",
+      "description": "Alternates between two patterns",
+      "type": "structure",
+      "subtype": "alternate_block",
+      "properties": {
+        "value": "3"
+      },
+      "connections": [
+        {
+          "id": "alternate_block_input1",
+          "name": "First Input",
+          "type": "input",
+          "position": {"x": 0.0, "y": 0.3}
+        },
+        {
+          "id": "alternate_block_input2",
+          "name": "Second Input",
+          "type": "input",
+          "position": {"x": 0.0, "y": 0.7}
+        },
+        {
+          "id": "alternate_block_output",
+          "name": "Output",
+          "type": "output",
+          "position": {"x": 1.0, "y": 0.5}
+        }
+      ],
+      "iconPath": "assets/images/blocks/alternate_icon.png",
+      "culturalMeaning": "Represents balance and duality in Akan philosophy",
+      "difficulty": "advanced"
+    },
+    {
+      "id": "mirror_block",
+      "name": "Mirror Block",
+      "description": "Creates a mirror image of the input pattern",
+      "type": "structure",
+      "subtype": "mirror_block",
+      "properties": {
+        "direction": "horizontal"
+      },
+      "connections": [
+        {
+          "id": "mirror_block_input",
+          "name": "Input",
+          "type": "input",
+          "position": {"x": 0.0, "y": 0.5}
+        },
+        {
+          "id": "mirror_block_output",
+          "name": "Output",
+          "type": "output",
+          "position": {"x": 1.0, "y": 0.5}
+        }
+      ],
+      "iconPath": "assets/images/blocks/mirror_icon.png",
+      "culturalMeaning": "Represents reflection and balance in traditional patterns",
+      "difficulty": "master"
+    },
+    {
+      "id": "nested_loop_block",
+      "name": "Nested Loop Block",
+      "description": "Creates complex nested pattern repetitions",
+      "type": "structure",
+      "subtype": "nested_loop_block",
+      "properties": {
+        "outer": "2",
+        "inner": "3"
+      },
+      "connections": [
+        {
+          "id": "nested_loop_block_input",
+          "name": "Input",
+          "type": "input",
+          "position": {"x": 0.0, "y": 0.5}
+        },
+        {
+          "id": "nested_loop_block_output",
+          "name": "Output",
+          "type": "output",
+          "position": {"x": 1.0, "y": 0.5}
+        },
+        {
+          "id": "nested_loop_block_inner",
+          "name": "Inner Loop",
+          "type": "output",
+          "position": {"x": 0.7, "y": 1.0}
+        },
+        {
+          "id": "nested_loop_block_outer",
+          "name": "Outer Loop",
+          "type": "output",
+          "position": {"x": 0.3, "y": 1.0}
+        }
+      ],
+      "iconPath": "assets/images/blocks/nested_loop_icon.png",
+      "culturalMeaning": "Represents the complex interweaving techniques of master Kente weavers",
+      "difficulty": "master"
     }
   ],
   
@@ -391,25 +581,33 @@
       "id": "basic",
       "name": "Basic",
       "description": "Simple patterns for beginners",
-      "requiredScore": 0
+      "requiredScore": 0,
+      "unlockMessage": "Learning the foundations of Kente weaving",
+      "icon": "assets/images/badges/basic_badge.png"
     },
     {
       "id": "intermediate",
       "name": "Intermediate",
       "description": "More complex patterns with structure blocks",
-      "requiredScore": 100
+      "requiredScore": 100,
+      "unlockMessage": "You're now ready to create more complex patterns!",
+      "icon": "assets/images/badges/intermediate_badge.png"
     },
     {
       "id": "advanced",
       "name": "Advanced",
       "description": "Complex combinations and nested blocks",
-      "requiredScore": 300
+      "requiredScore": 300,
+      "unlockMessage": "Welcome to advanced Kente weaving techniques!",
+      "icon": "assets/images/badges/advanced_badge.png"
     },
     {
       "id": "master",
       "name": "Master",
       "description": "Expert-level patterns with cultural authenticity",
-      "requiredScore": 500
+      "requiredScore": 500,
+      "unlockMessage": "You have reached the level of a master Kente weaver!",
+      "icon": "assets/images/badges/master_badge.png"
     }
   ],
   
@@ -421,7 +619,12 @@
       "defaultColors": ["#000000", "#FFD700"],
       "minColors": 2,
       "maxColors": 4,
-      "culturalSignificance": "Symbolizes intelligence and strategy"
+      "culturalSignificance": "Symbolizes intelligence and strategy",
+      "storyElements": [
+        "Origin in the game board pattern of Dame",
+        "Represents duality and balance in life",
+        "Used by chiefs and elders to signify wisdom"
+      ]
     },
     {
       "id": "zigzag",
@@ -430,7 +633,12 @@
       "defaultColors": ["#000000", "#FF0000", "#FFD700"],
       "minColors": 2,
       "maxColors": 5,
-      "culturalSignificance": "Represents life's journey and adaptability"
+      "culturalSignificance": "Represents life's journey and adaptability",
+      "storyElements": [
+        "Symbolizes the twists and turns in life's journey",
+        "Reminds wearers to be adaptable to change",
+        "Represents the proverb 'Life is not a straight path'"
+      ]
     },
     {
       "id": "stripes_vertical",
@@ -439,7 +647,12 @@
       "defaultColors": ["#000000", "#FFD700", "#FF0000"],
       "minColors": 2,
       "maxColors": 6,
-      "culturalSignificance": "Represents balance and structure"
+      "culturalSignificance": "Represents balance and structure",
+      "storyElements": [
+        "Symbolizes the structure needed in society",
+        "Represents the straight path of righteousness",
+        "Signifies directness and clarity of purpose"
+      ]
     },
     {
       "id": "stripes_horizontal",
@@ -448,7 +661,12 @@
       "defaultColors": ["#000000", "#FFD700", "#FF0000"],
       "minColors": 2,
       "maxColors": 6,
-      "culturalSignificance": "Symbolizes strength through unity"
+      "culturalSignificance": "Symbolizes strength through unity",
+      "storyElements": [
+        "Inspired by bamboo sticks bundled together",
+        "Represents the Akan proverb about strength in unity",
+        "Worn during ceremonies that celebrate community"
+      ]
     },
     {
       "id": "diamond",
@@ -457,7 +675,12 @@
       "defaultColors": ["#000000", "#FFD700", "#FF0000"],
       "minColors": 2,
       "maxColors": 5,
-      "culturalSignificance": "Represents collective wisdom and democracy"
+      "culturalSignificance": "Represents collective wisdom and democracy",
+      "storyElements": [
+        "Named after the democratic principles of Akan governance",
+        "Diamond shape represents value and preciousness",
+        "Symbolizes the gathering of elders to make decisions"
+      ]
     },
     {
       "id": "square",
@@ -466,7 +689,40 @@
       "defaultColors": ["#000000", "#FFD700", "#FF0000"],
       "minColors": 2,
       "maxColors": 5,
-      "culturalSignificance": "Symbolizes protection and security"
+      "culturalSignificance": "Symbolizes protection and security",
+      "storyElements": [
+        "Represents the walls of a compound that protect a family",
+        "Symbolizes safety and security in uncertain times",
+        "Worn as a spiritual protection against harm"
+      ]
+    },
+    {
+      "id": "adinkra",
+      "name": "Adinkra",
+      "description": "Traditional symbolic pattern",
+      "defaultColors": ["#000000", "#8B4513"],
+      "minColors": 2,
+      "maxColors": 3,
+      "culturalSignificance": "Contains symbols that represent concepts or aphorisms",
+      "storyElements": [
+        "Used in ceremonies of remembrance",
+        "Each symbol carries a specific philosophical meaning",
+        "Connects wearer to ancestral wisdom"
+      ]
+    },
+    {
+      "id": "ahwene_pa",
+      "name": "Ahwene Pa",
+      "description": "Complex symmetrical pattern",
+      "defaultColors": ["#000000", "#FFD700", "#FF0000", "#1976D2"],
+      "minColors": 3,
+      "maxColors": 7,
+      "culturalSignificance": "Symbolizes excellence, beauty, and high quality",
+      "storyElements": [
+        "Named after 'good beads' used in royal jewelry",
+        "Reserved for special ceremonial occasions",
+        "Represents the pinnacle of weaving craftsmanship"
+      ]
     }
   ],
   
@@ -475,49 +731,369 @@
       "id": "black",
       "name": "Black",
       "hexCode": "#000000",
-      "culturalSignificance": "Symbolizes spiritual maturity and energy"
+      "culturalSignificance": "Symbolizes spiritual maturity and energy",
+      "storyElements": [
+        "Represents connection with ancestors",
+        "Symbolizes spiritual maturity and wisdom",
+        "Used in ceremonies related to spiritual growth"
+      ]
     },
     {
       "id": "blue",
       "name": "Blue",
       "hexCode": "#1976D2",
-      "culturalSignificance": "Represents peace, harmony, and love"
+      "culturalSignificance": "Represents peace, harmony, and love",
+      "storyElements": [
+        "Symbolizes the peaceful blue sky",
+        "Represents emotional depth and calm",
+        "Associated with love and positive feelings"
+      ]
     },
     {
       "id": "gold",
       "name": "Gold",
       "hexCode": "#FFD700",
-      "culturalSignificance": "Symbolizes royalty, wealth, and spiritual purity"
+      "culturalSignificance": "Symbolizes royalty, wealth, and spiritual purity",
+      "storyElements": [
+        "Reserved primarily for royalty and leaders",
+        "Represents the wealth of the Ashanti kingdom",
+        "Symbolizes the sun's life-giving energy"
+      ]
     },
     {
       "id": "green",
       "name": "Green",
       "hexCode": "#4CAF50",
-      "culturalSignificance": "Represents growth, renewal, and prosperity"
+      "culturalSignificance": "Represents growth, renewal, and prosperity",
+      "storyElements": [
+        "Symbolizes the lush vegetation of Ghana",
+        "Represents new beginnings and fresh growth",
+        "Used in ceremonies related to harvest and fertility"
+      ]
     },
     {
       "id": "orange",
       "name": "Orange",
       "hexCode": "#FF9800",
-      "culturalSignificance": "Symbolizes energy and vitality"
+      "culturalSignificance": "Symbolizes energy and vitality",
+      "storyElements": [
+        "Represents the warmth of the African sunset",
+        "Symbolizes endurance and strength",
+        "Associated with healing properties"
+      ]
     },
     {
       "id": "purple",
       "name": "Purple",
       "hexCode": "#9C27B0",
-      "culturalSignificance": "Represents feminine aspects of life"
+      "culturalSignificance": "Represents feminine aspects of life",
+      "storyElements": [
+        "Associated with feminine leadership and wisdom",
+        "Symbolizes royalty among women",
+        "Used in ceremonies honoring female ancestors"
+      ]
     },
     {
       "id": "red",
       "name": "Red",
       "hexCode": "#F44336",
-      "culturalSignificance": "Symbolizes political and spiritual sacrifice"
+      "culturalSignificance": "Symbolizes political and spiritual sacrifice",
+      "storyElements": [
+        "Represents the blood of ancestors and sacrifice",
+        "Symbolizes political and spiritual passion",
+        "Used in ceremonies related to protection"
+      ]
     },
     {
       "id": "white",
       "name": "White",
       "hexCode": "#FFFFFF",
-      "culturalSignificance": "Represents purification and festive occasions"
+      "culturalSignificance": "Represents purification and festive occasions",
+      "storyElements": [
+        "Symbolizes purity and cleansing",
+        "Used in celebrations and joyful occasions",
+        "Represents the spirit world and ancestors"
+      ]
+    },
+    {
+      "id": "brown",
+      "name": "Brown",
+      "hexCode": "#8B4513",
+      "culturalSignificance": "Symbolizes connection to the earth and healing",
+      "storyElements": [
+        "Represents the nurturing earth",
+        "Associated with healing and herbal medicine",
+        "Symbolizes stability and groundedness"
+      ]
+    },
+    {
+      "id": "silver",
+      "name": "Silver",
+      "hexCode": "#C0C0C0",
+      "culturalSignificance": "Symbolizes serenity and the moon's energy",
+      "storyElements": [
+        "Represents the moon's gentle guidance",
+        "Symbolizes the feminine divine energy",
+        "Used in ceremonies related to intuition and wisdom"
+      ]
+    }
+  ],
+  
+  "learningPathways": [
+    {
+      "id": "beginner_pathway",
+      "name": "Beginner's Journey",
+      "description": "Learn the foundations of Kente weaving with simple patterns",
+      "stages": [
+        {
+          "id": "color_basics",
+          "name": "Color Basics",
+          "description": "Explore the meaning of colors in Kente cloth",
+          "requiredBlocks": ["shuttle_black", "shuttle_gold", "shuttle_red"],
+          "suggestedPatterns": ["checker_pattern", "stripes_horizontal_pattern"]
+        },
+        {
+          "id": "pattern_fundamentals",
+          "name": "Pattern Fundamentals",
+          "description": "Master basic Kente patterns and their meaning",
+          "requiredBlocks": ["checker_pattern", "zigzag_pattern", "stripes_vertical_pattern"],
+          "suggestedPatterns": ["checker_pattern", "zigzag_pattern"]
+        },
+        {
+          "id": "simple_combinations",
+          "name": "Simple Combinations",
+          "description": "Combine patterns and colors to create meaning",
+          "requiredBlocks": ["checker_pattern", "stripes_horizontal_pattern", "shuttle_black", "shuttle_gold"],
+          "suggestedPatterns": ["checker_pattern", "stripes_horizontal_pattern"]
+        }
+      ]
+    },
+    {
+      "id": "intermediate_pathway",
+      "name": "Pattern Explorer",
+      "description": "Learn to create more complex patterns with loops and structure",
+      "stages": [
+        {
+          "id": "loop_introduction",
+          "name": "Loop Introduction",
+          "description": "Learn to create repeating patterns",
+          "requiredBlocks": ["loop_block", "checker_pattern", "shuttle_gold"],
+          "suggestedPatterns": ["checker_pattern", "zigzag_pattern"]
+        },
+        {
+          "id": "structure_basics",
+          "name": "Structure Basics",
+          "description": "Organize patterns with rows and columns",
+          "requiredBlocks": ["row_block", "column_block", "checker_pattern", "zigzag_pattern"],
+          "suggestedPatterns": ["checker_pattern", "zigzag_pattern"]
+        },
+        {
+          "id": "color_harmony",
+          "name": "Color Harmony",
+          "description": "Create balanced color combinations with cultural meaning",
+          "requiredBlocks": ["shuttle_gold", "shuttle_red", "shuttle_green", "shuttle_black"],
+          "suggestedPatterns": ["square_pattern", "diamonds_pattern"]
+        }
+      ]
+    },
+    {
+      "id": "advanced_pathway",
+      "name": "Pattern Master",
+      "description": "Create complex authentic Kente patterns with deep cultural meaning",
+      "stages": [
+        {
+          "id": "advanced_structures",
+          "name": "Advanced Structures",
+          "description": "Create complex pattern arrangements",
+          "requiredBlocks": ["alternate_block", "row_block", "column_block", "loop_block"],
+          "suggestedPatterns": ["adinkra_pattern", "diamonds_pattern"]
+        },
+        {
+          "id": "color_symbolism",
+          "name": "Color Symbolism",
+          "description": "Use colors to tell cultural stories",
+          "requiredBlocks": ["shuttle_gold", "shuttle_red", "shuttle_blue", "shuttle_purple", "shuttle_green"],
+          "suggestedPatterns": ["adinkra_pattern", "square_pattern"]
+        },
+        {
+          "id": "traditional_designs",
+          "name": "Traditional Designs",
+          "description": "Recreate authentic Kente patterns with historical significance",
+          "requiredBlocks": ["adinkra_pattern", "square_pattern", "diamonds_pattern"],
+          "suggestedPatterns": ["adinkra_pattern"]
+        }
+      ]
+    },
+    {
+      "id": "master_pathway",
+      "name": "Kente Weaving Master",
+      "description": "Create museum-quality Kente designs with perfect cultural authenticity",
+      "stages": [
+        {
+          "id": "complex_nesting",
+          "name": "Complex Nesting",
+          "description": "Master nested loops and mirroring for intricate patterns",
+          "requiredBlocks": ["nested_loop_block", "mirror_block", "alternate_block"],
+          "suggestedPatterns": ["ahwene_pa_pattern"]
+        },
+        {
+          "id": "color_mastery",
+          "name": "Color Mastery",
+          "description": "Create perfect color harmony with all traditional colors",
+          "requiredBlocks": ["shuttle_gold", "shuttle_brown", "shuttle_silver", "shuttle_purple"],
+          "suggestedPatterns": ["ahwene_pa_pattern"]
+        },
+        {
+          "id": "cultural_storytelling",
+          "name": "Cultural Storytelling",
+          "description": "Weave patterns that tell complete cultural stories",
+          "requiredBlocks": ["ahwene_pa_pattern", "adinkra_pattern", "nested_loop_block"],
+          "suggestedPatterns": ["ahwene_pa_pattern"]
+        }
+      ]
+    }
+  ],
+  
+  "achievements": [
+    {
+      "id": "first_pattern",
+      "name": "First Pattern",
+      "description": "Create your first Kente pattern",
+      "criteria": {
+        "patternCount": 1
+      },
+      "icon": "assets/images/achievements/first_pattern.png",
+      "reward": "Unlock basic patterns",
+      "points": 10
+    },
+    {
+      "id": "color_explorer",
+      "name": "Color Explorer",
+      "description": "Use all basic Kente colors in your designs",
+      "criteria": {
+        "uniqueColors": 4,
+        "specificColors": ["shuttle_black", "shuttle_gold", "shuttle_red", "shuttle_white"]
+      },
+      "icon": "assets/images/achievements/color_explorer.png",
+      "reward": "Unlock intermediate colors",
+      "points": 25
+    },
+    {
+      "id": "pattern_master",
+      "name": "Pattern Master",
+      "description": "Create patterns using all basic Kente designs",
+      "criteria": {
+        "uniquePatterns": 4,
+        "specificPatterns": ["checker_pattern", "zigzag_pattern", "stripes_vertical_pattern", "stripes_horizontal_pattern"]
+      },
+      "icon": "assets/images/achievements/pattern_master.png",
+      "reward": "Unlock intermediate patterns",
+      "points": 50
+    },
+    {
+      "id": "loop_master",
+      "name": "Loop Master",
+      "description": "Create a pattern with 3 or more loop blocks",
+      "criteria": {
+        "blockTypeCount": {
+          "loop_block": 3
+        }
+      },
+      "icon": "assets/images/achievements/loop_master.png",
+      "reward": "Unlock nested loop block",
+      "points": 75
+    },
+    {
+      "id": "cultural_storyteller",
+      "name": "Cultural Storyteller",
+      "description": "Create a pattern with deep cultural significance",
+      "criteria": {
+        "minComplexity": 0.7,
+        "minCulturalScore": 0.8,
+        "minUniqueBlocks": 8
+      },
+      "icon": "assets/images/achievements/cultural_storyteller.png",
+      "reward": "Unlock master difficulty",
+      "points": 100
+    },
+    {
+      "id": "master_weaver",
+      "name": "Master Weaver",
+      "description": "Create a perfect museum-quality Kente pattern",
+      "criteria": {
+        "minComplexity": 0.9,
+        "minCulturalScore": 0.9,
+        "minUniqueBlocks": 12,
+        "minUniquePatterns": 3,
+        "minUniqueColors": 5
+      },
+      "icon": "assets/images/achievements/master_weaver.png",
+      "reward": "Unlock the title of Master Weaver",
+      "points": 200
+    }
+  ],
+  
+  "culturalStories": [
+    {
+      "id": "kente_origin",
+      "title": "The Origin of Kente",
+      "content": "Long ago, two friends from the village of Bonwire, Kurugu and Ameyaw, went hunting in the forest. While resting under a tree, they noticed a spider spinning a web with an intricate pattern. Fascinated by the beauty and complexity of the web, they returned to their village and tried to recreate the pattern using threads. Their creation became the first Kente cloth, and the knowledge was passed down through generations.",
+      "relatedPatterns": ["checker_pattern", "zigzag_pattern"],
+      "imageAsset": "assets/images/story/kente_origin.png"
+    },
+    {
+      "id": "royal_kente",
+      "title": "Kente and Royalty",
+      "content": "Kente cloth was originally reserved exclusively for royalty in the Ashanti Kingdom. The gold threads represented the wealth and prestige of the kingdom, while the intricate patterns symbolized the king's wisdom and authority. Only the Asantehene (king) and his closest advisors were permitted to wear certain patterns. Today, Kente is worn by many people for special occasions, but specific designs still maintain their royal significance.",
+      "relatedPatterns": ["adinkra_pattern", "ahwene_pa_pattern"],
+      "relatedColors": ["shuttle_gold", "shuttle_purple"],
+      "imageAsset": "assets/images/story/royal_kente.png"
+    },
+    {
+      "id": "colors_meaning",
+      "title": "The Language of Colors",
+      "content": "In Kente weaving, each color carries specific meaning and communicates different aspects of Akan philosophy. Gold symbolizes royalty and wealth, blue represents peace and harmony, green signifies growth and renewal, red symbolizes political and spiritual energy, black represents spiritual maturity, and white symbolizes purification and festive occasions. By combining these colors in specific patterns, Kente weavers create cloth that tells stories and conveys cultural values.",
+      "relatedColors": ["shuttle_gold", "shuttle_blue", "shuttle_green", "shuttle_red", "shuttle_black", "shuttle_white"],
+      "imageAsset": "assets/images/story/colors_meaning.png"
+    },
+    {
+      "id": "weaving_technique",
+      "title": "The Art of Kente Weaving",
+      "content": "Traditional Kente is woven on a horizontal loom that uses a warp and weft technique. The weaver creates thin strips about 4 inches wide, which are later sewn together to form larger cloths. A full-size traditional Kente cloth might contain more than 20 strips. Master weavers train for years to perfect their technique, learning to create increasingly complex patterns that require precise coordination and mathematical understanding. The warp threads (vertical) provide structure, while the weft threads (horizontal) create the vibrant patterns.",
+      "relatedPatterns": ["stripes_vertical_pattern", "stripes_horizontal_pattern", "diamonds_pattern"],
+      "imageAsset": "assets/images/story/weaving_technique.png"
+    }
+  ],
+  
+  "aiHintTemplates": [
+    {
+      "difficulty": "basic",
+      "noBlocksHint": "Start by adding a pattern block like Dame-Dame (checker) to create your first design.",
+      "noPatternHint": "Add a pattern block to define the structure of your design. Try the checker or zigzag pattern!",
+      "noColorHint": "Add color blocks to bring your pattern to life. Traditional Kente uses gold, black, red, and green.",
+      "needConnectionHint": "Connect your blocks by dragging from connection points between blocks.",
+      "goodProgressHint": "Great work! Try combining different patterns and colors to create more meaning."
+    },
+    {
+      "difficulty": "intermediate",
+      "noLoopHint": "Try adding loop blocks to create repeating patterns, like traditional Kente strips.",
+      "noStructureHint": "Add row or column blocks to organize your patterns like the warp and weft threads in Kente.",
+      "needVarietyHint": "Traditional Kente uses multiple patterns and colors. Try adding more variety to your design.",
+      "goodProgressHint": "Nice work! Your pattern shows good understanding of intermediate Kente design principles."
+    },
+    {
+      "difficulty": "advanced",
+      "complexityHint": "Try creating more complex arrangements using nested structures and multiple pattern types.",
+      "colorSymbolismHint": "Use color combinations with cultural meaning. Remember that each color tells part of the story.",
+      "patternVarietyHint": "Master weavers combine multiple pattern types in a single cloth. Try using more variety.",
+      "goodProgressHint": "Excellent work! Your pattern shows strong understanding of advanced Kente techniques."
+    },
+    {
+      "difficulty": "master",
+      "complexNestingHint": "Master weavers create complex nested patterns. Try using nested loops for more intricate designs.",
+      "culturalAccuracyHint": "Focus on cultural authenticity. Each element should have specific meaning in Akan tradition.",
+      "colorHarmonyHint": "Perfect color harmony is essential in master-level Kente. Ensure your colors have balanced symbolism.",
+      "goodProgressHint": "Outstanding! Your pattern demonstrates mastery of Kente weaving techniques and cultural understanding."
     }
   ]
 }

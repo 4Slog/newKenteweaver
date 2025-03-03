@@ -1,6 +1,6 @@
+// lib/models/block_model.dart
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
 
 enum BlockType {
   pattern,
@@ -48,12 +48,12 @@ class BlockConnection {
       id: json['id'],
       name: json['name'],
       type: ConnectionType.values.firstWhere(
-        (e) => e.toString().split('.').last == json['type'],
+            (e) => e.toString().split('.').last == json['type'],
         orElse: () => ConnectionType.none,
       ),
       position: Offset(
-        json['position']['x'].toDouble(),
-        json['position']['y'].toDouble(),
+        (json['position']['x'] is num) ? json['position']['x'].toDouble() : 0.5,
+        (json['position']['y'] is num) ? json['position']['y'].toDouble() : 0.5,
       ),
       connectedToId: json['connectedToId'],
     );
@@ -98,24 +98,100 @@ class Block {
   }
 
   factory Block.fromJson(Map<String, dynamic> json) {
+    final typeStr = json['type'] as String;
+    final BlockType type = _getBlockTypeFromString(typeStr);
+
+    List<BlockConnection> connections = [];
+    if (json['connections'] != null) {
+      connections = (json['connections'] as List)
+          .map((c) => BlockConnection.fromJson(c))
+          .toList();
+    } else {
+      // Generate default connections based on type
+      connections = _createDefaultConnections(type, json['id']);
+    }
+
     return Block(
       id: json['id'],
       name: json['name'],
-      description: json['description'],
-      type: BlockType.values.firstWhere(
-        (e) => e.toString().split('.').last == json['type'],
-        orElse: () => BlockType.pattern,
-      ),
-      subtype: json['subtype'],
-      properties: json['properties'] ?? {},
-      connections: (json['connections'] as List)
-          .map((c) => BlockConnection.fromJson(c))
-          .toList(),
-      iconPath: json['iconPath'],
-      color: Color(int.parse(json['color'])),
+      description: json['description'] ?? '',
+      type: type,
+      subtype: json['subtype'] ?? typeStr,
+      properties: Map<String, dynamic>.from(json['properties'] ?? {}),
+      connections: connections,
+      iconPath: json['iconPath'] ?? '',
+      color: _getColorFromJson(json['color']),
     );
   }
 
+  static BlockType _getBlockTypeFromString(String typeStr) {
+    if (typeStr.contains('_pattern') || typeStr == 'pattern') {
+      return BlockType.pattern;
+    } else if (typeStr.contains('shuttle_') || typeStr == 'color') {
+      return BlockType.color;
+    } else if (typeStr == 'loop_block' || typeStr == 'loop') {
+      return BlockType.loop;
+    } else if (typeStr == 'row_block' || typeStr == 'row') {
+      return BlockType.row;
+    } else if (typeStr == 'column_block' || typeStr == 'column') {
+      return BlockType.column;
+    }
+    return BlockType.structure;
+  }
+
+  static List<BlockConnection> _createDefaultConnections(BlockType type, String blockId) {
+    final connections = <BlockConnection>[];
+
+    // Input connection for most blocks except pattern and color
+    if (type != BlockType.pattern && type != BlockType.color) {
+      connections.add(BlockConnection(
+        id: '${blockId}_input',
+        name: 'Input',
+        type: ConnectionType.input,
+        position: const Offset(0, 0.5),
+      ));
+    }
+
+    // Output connection for all blocks
+    connections.add(BlockConnection(
+      id: '${blockId}_output',
+      name: 'Output',
+      type: ConnectionType.output,
+      position: const Offset(1, 0.5),
+    ));
+
+    // Additional connection for loop blocks
+    if (type == BlockType.loop) {
+      connections.add(BlockConnection(
+        id: '${blockId}_body',
+        name: 'Body',
+        type: ConnectionType.output,
+        position: const Offset(0.5, 1),
+      ));
+    }
+
+    return connections;
+  }
+
+  static Color _getColorFromJson(dynamic colorValue) {
+    if (colorValue == null) {
+      return Colors.grey;
+    }
+
+    if (colorValue is String) {
+      if (colorValue.startsWith('#')) {
+        return Color(int.parse('0xFF${colorValue.substring(1)}'));
+      } else if (colorValue.startsWith('0x')) {
+        return Color(int.parse(colorValue));
+      }
+    } else if (colorValue is int) {
+      return Color(colorValue);
+    }
+
+    return Colors.grey;
+  }
+
+  // Maintain backward compatibility
   factory Block.fromMap(Map<String, dynamic> map) {
     BlockType getTypeFromString(String typeStr) {
       if (typeStr.startsWith('shuttle_')) return BlockType.color;
@@ -331,18 +407,6 @@ class BlockCollection {
       }
 
       connection.connectedToId = null;
-    }
-  }
-
-  // Load blocks from JSON file
-  static Future<BlockCollection> loadFromJsonFile(String path) async {
-    try {
-      final jsonString = await rootBundle.loadString(path);
-      final jsonMap = json.decode(jsonString);
-      return BlockCollection.fromJson(jsonMap);
-    } catch (e) {
-      debugPrint('Error loading blocks from JSON file: $e');
-      return BlockCollection(blocks: []);
     }
   }
 }
