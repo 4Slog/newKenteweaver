@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
+import '../models/emotional_tone.dart';
 
 /// Enum representing different types of content blocks in a story
 enum ContentBlockType {
@@ -29,20 +30,6 @@ enum ContentBlockType {
   
   /// Educational content
   educational,
-}
-
-/// Enum for emotional tones to guide text-to-speech
-enum EmotionalTone {
-  neutral,
-  happy,
-  excited,
-  concerned,
-  thoughtful,
-  curious,
-  wise,
-  confused,
-  surprised,
-  proud,
 }
 
 /// Class for text-to-speech settings for content blocks
@@ -1048,7 +1035,7 @@ class ConceptHelper {
     final description = getConceptDescription(conceptId);
     final kenteMapping = getKenteMapping(conceptId);
     
-    return ContentBlock.educational(
+    return EducationalContentBlock.educational(
       id: id ?? 'concept_${conceptId}_explanation',
       text: 'In coding, $conceptName is $description. In Kente weaving, this relates to $kenteMapping.',
       metadata: {

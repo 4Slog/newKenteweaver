@@ -25,6 +25,11 @@ class UserProvider extends ChangeNotifier {
   DateTime get lastActiveDate => _user?.lastActiveDate ?? DateTime.now();
   int get currentStreak => _user?.currentStreak ?? 0;
   Map<String, int> get difficultyStats => _user?.difficultyStats ?? {};
+  
+  // New getters for story progress
+  Set<String> get masteredConcepts => _user?.masteredConcepts ?? {};
+  List<String> get completedStories => _user?.completedStories ?? [];
+  List<String> get inProgressStories => _user?.inProgressStories ?? [];
 
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -63,6 +68,34 @@ class UserProvider extends ChangeNotifier {
           print('Error decoding difficultyStats: $e');
         }
       }
+      
+      // Load story progress
+      final storyProgressStr = _prefs?.getString('storyProgress');
+      Map<String, dynamic> storyProgress = {};
+      if (storyProgressStr != null) {
+        try {
+          storyProgress = json.decode(storyProgressStr);
+        } catch (e) {
+          print('Error decoding storyProgress: $e');
+        }
+      }
+      
+      // Load mastered concepts
+      final masteredConceptsList = _prefs?.getStringList('masteredConcepts') ?? [];
+      
+      // Load choice history
+      final choiceHistoryStr = _prefs?.getString('choiceHistory');
+      List<UserChoice> choiceHistory = [];
+      if (choiceHistoryStr != null) {
+        try {
+          final List<dynamic> decoded = json.decode(choiceHistoryStr);
+          choiceHistory = decoded
+              .map((item) => UserChoice.fromJson(item))
+              .toList();
+        } catch (e) {
+          print('Error decoding choiceHistory: $e');
+        }
+      }
 
       _user = UserModel(
         id: userId,
@@ -78,6 +111,9 @@ class UserProvider extends ChangeNotifier {
         lastActiveDate: lastActiveDate,
         currentStreak: _prefs?.getInt('currentStreak') ?? 0,
         difficultyStats: difficultyStats,
+        masteredConcepts: masteredConceptsList.toSet(),
+        storyProgress: storyProgress,
+        choiceHistory: choiceHistory,
       );
       notifyListeners();
     }
@@ -100,6 +136,12 @@ class UserProvider extends ChangeNotifier {
     await _prefs!.setString('lastActiveDate', now.toIso8601String());
     await _prefs!.setInt('currentStreak', _user!.currentStreak);
     await _prefs!.setString('difficultyStats', json.encode(_user!.difficultyStats));
+    
+    // Save new story tracking data
+    await _prefs!.setStringList('masteredConcepts', _user!.masteredConcepts.toList());
+    await _prefs!.setString('storyProgress', json.encode(_user!.storyProgress));
+    await _prefs!.setString('choiceHistory', 
+        json.encode(_user!.choiceHistory.map((c) => c.toJson()).toList()));
 
     // Update the user model with the new lastActiveDate
     _user = _user!.copyWith(lastActiveDate: now);
@@ -171,6 +213,10 @@ class UserProvider extends ChangeNotifier {
   bool hasCreatedPattern(String patternType) {
     return _user?.unlockedPatterns.contains(patternType) ?? false;
   }
+  
+  bool hasConceptMastered(String conceptId) {
+    return _user?.achievements.contains('concept_mastered_$conceptId') ?? false;
+  }
 
   void recordPatternCreated(String patternType, PatternDifficulty difficulty) {
     if (_user != null) {
@@ -208,6 +254,116 @@ class UserProvider extends ChangeNotifier {
       _user = _user!.copyWith(level: newLevel);
       // TODO: Trigger level up celebration
     }
+  }
+  
+  // Record mastered concepts
+  Future<void> recordConceptMastery(List<String> concepts) async {
+    if (_user == null) return;
+    
+    // Update mastered concepts in user model
+    _user = _user!.copyWith(
+      masteredConcepts: {..._user!.masteredConcepts, ...concepts.toSet()},
+      experience: _user!.experience + (concepts.length * 10), // XP for mastering concepts
+    );
+    
+    // Check for level up
+    _checkLevelUp();
+    
+    // Save user data
+    await _saveUser();
+    notifyListeners();
+  }
+  
+  // Record story progress
+  Future<void> recordStoryProgress({
+    required String storyId,
+    required double completionScore,
+    required List<String> conceptsPracticed,
+    required List<String> choicesMade,
+  }) async {
+    if (_user == null) return;
+    
+    // Create progress entry
+    final progressEntry = {
+      'completionScore': completionScore,
+      'conceptsPracticed': conceptsPracticed,
+      'choicesMade': choicesMade,
+      'lastUpdated': DateTime.now().toIso8601String(),
+    };
+    
+    // Update story progress
+    final updatedProgress = Map<String, dynamic>.from(_user!.storyProgress);
+    updatedProgress[storyId] = progressEntry;
+    
+    // Check if this is a newly completed story
+    final wasCompleted = _user!.getStoryCompletionScore(storyId) >= 0.9;
+    final isNowCompleted = completionScore >= 0.9;
+    
+    // Award XP for completion if newly completed
+    int additionalXP = 0;
+    if (!wasCompleted && isNowCompleted) {
+      additionalXP = 50; // Base XP for completing a story
+      
+      // Increment completed challenges
+      _user = _user!.copyWith(
+        completedChallenges: _user!.completedChallenges + 1,
+      );
+    }
+    
+    // Update user model
+    _user = _user!.copyWith(
+      storyProgress: updatedProgress,
+      experience: _user!.experience + additionalXP,
+    );
+    
+    // Check for level up
+    _checkLevelUp();
+    
+    // Save user data
+    await _saveUser();
+    notifyListeners();
+  }
+  
+  // Record a user choice
+  Future<void> recordUserChoice(UserChoice choice) async {
+    if (_user == null) return;
+    
+    // Add to choice history
+    final updatedChoices = List<UserChoice>.from(_user!.choiceHistory);
+    updatedChoices.add(choice);
+    
+    // Keep only the most recent 100 choices to avoid excessive storage
+    if (updatedChoices.length > 100) {
+      updatedChoices.removeAt(0);
+    }
+    
+    // Update user model
+    _user = _user!.copyWith(
+      choiceHistory: updatedChoices,
+    );
+    
+    // Save user data
+    await _saveUser();
+    notifyListeners();
+  }
+  
+  // Get story completion percentage
+  double getStoryCompletionPercentage(String storyId) {
+    return _user?.getStoryCompletionScore(storyId) ?? 0.0;
+  }
+  
+  // Check if user has mastered a concept
+  bool hasConceptMastery(String concept) {
+    return _user?.masteredConcepts.contains(concept) ?? false;
+  }
+  
+  // Get all choices for a specific story
+  List<UserChoice> getChoicesForStory(String storyId) {
+    if (_user == null) return [];
+    
+    return _user!.choiceHistory.where((choice) => 
+      choice.nodeId.startsWith(storyId)
+    ).toList();
   }
 
   void updateLastActive() {

@@ -143,6 +143,7 @@ class _StoryChoiceWidgetState extends State<StoryChoiceWidget> with SingleTicker
     final choice = widget.choices[index];
     final text = choice['text'] as String;
     final isDisabled = choice['disabled'] as bool? ?? false;
+    final disabledReason = choice['disabled_reason'] as String?;
     final isSelected = _selectedIndex == index;
     
     // For visually marking consequences
@@ -172,22 +173,41 @@ class _StoryChoiceWidgetState extends State<StoryChoiceWidget> with SingleTicker
       builder: (context, child) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-          child: Material(
-            elevation: isSelected ? 4.0 * _selectionAnimation.value : 1.0,
-            borderRadius: BorderRadius.circular(12),
-            color: isSelected 
-                ? Color.lerp(buttonColor, AppTheme.kenteGold, _selectionAnimation.value)
-                : buttonColor,
-            child: InkWell(
-              onTap: isDisabled ? null : () => _handleChoiceSelection(index),
-              borderRadius: BorderRadius.circular(12),
-              splashColor: AppTheme.kenteGold.withOpacity(0.3),
-              highlightColor: AppTheme.kenteGold.withOpacity(0.1),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
-                child: _buildChoiceContent(choice, isSelected, isDisabled),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Material(
+                elevation: isSelected ? 4.0 * _selectionAnimation.value : 1.0,
+                borderRadius: BorderRadius.circular(12),
+                color: isSelected 
+                    ? Color.lerp(buttonColor, AppTheme.kenteGold, _selectionAnimation.value)
+                    : buttonColor,
+                child: InkWell(
+                  onTap: isDisabled ? null : () => _handleChoiceSelection(index),
+                  borderRadius: BorderRadius.circular(12),
+                  splashColor: AppTheme.kenteGold.withOpacity(0.3),
+                  highlightColor: AppTheme.kenteGold.withOpacity(0.1),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
+                    child: _buildChoiceContent(choice, isSelected, isDisabled),
+                  ),
+                ),
               ),
-            ),
+              
+              // Show disabled reason if the choice is disabled and has a reason
+              if (isDisabled && disabledReason != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                  child: Text(
+                    disabledReason,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade700,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },
@@ -238,7 +258,7 @@ class _StoryChoiceWidgetState extends State<StoryChoiceWidget> with SingleTicker
           ),
         ),
         if (isSelected)
-          Icon(
+          const Icon(
             Icons.arrow_forward_ios,
             size: 14,
             color: Colors.black,
@@ -318,7 +338,7 @@ class _StoryChoiceWidgetState extends State<StoryChoiceWidget> with SingleTicker
           ),
         ),
         if (isSelected)
-          Icon(
+          const Icon(
             Icons.arrow_forward_ios,
             size: 14,
             color: Colors.black,
@@ -331,7 +351,7 @@ class _StoryChoiceWidgetState extends State<StoryChoiceWidget> with SingleTicker
   BoxDecoration _getContainerDecoration() {
     switch (widget.style) {
       case StoryChoiceStyle.compact:
-        return BoxDecoration(
+        return const BoxDecoration(
           color: Colors.transparent,
         );
       case StoryChoiceStyle.descriptive:
@@ -360,6 +380,8 @@ class _StoryChoiceWidgetState extends State<StoryChoiceWidget> with SingleTicker
     if (type == 'dialogue') return Icons.chat_bubble_outline;
     if (type == 'wait') return Icons.hourglass_empty;
     if (type == 'exit') return Icons.exit_to_app;
+    if (type == 'challenge') return Icons.extension;
+    if (type == 'cultural') return Icons.info_outline;
     
     if (consequenceType == 'positive') return Icons.thumb_up_outlined;
     if (consequenceType == 'negative') return Icons.thumb_down_outlined;
@@ -428,6 +450,97 @@ extension StoryChoiceExtension on StoryChoiceWidget {
         },
       ],
       onChoiceSelected: (id, choice) => onSelected(id == 'yes'),
+      enableHapticFeedback: enableHapticFeedback,
+    );
+  }
+  
+  /// Create a widget for continue/cancel options
+  static StoryChoiceWidget continueCancelChoice({
+    required Function(bool) onSelected,
+    String continueText = 'Continue',
+    String cancelText = 'Cancel',
+    String? continueDescription,
+    String? cancelDescription,
+    bool enableHapticFeedback = true,
+  }) {
+    return StoryChoiceWidget(
+      choices: [
+        {
+          'id': 'continue',
+          'text': continueText,
+          'description': continueDescription,
+          'icon': Icons.arrow_forward,
+          'consequence_type': 'positive',
+        },
+        {
+          'id': 'cancel',
+          'text': cancelText,
+          'description': cancelDescription,
+          'icon': Icons.close,
+          'consequence_type': 'negative',
+        },
+      ],
+      style: continueDescription != null || cancelDescription != null 
+          ? StoryChoiceStyle.descriptive 
+          : StoryChoiceStyle.standard,
+      onChoiceSelected: (id, choice) => onSelected(id == 'continue'),
+      enableHapticFeedback: enableHapticFeedback,
+    );
+  }
+  
+  /// Create a widget for a list of cultural choices
+  static StoryChoiceWidget culturalChoices({
+    required List<Map<String, dynamic>> culturalOptions,
+    required Function(String) onSelected,
+    StoryChoiceStyle style = StoryChoiceStyle.descriptive,
+    bool enableHapticFeedback = true,
+  }) {
+    // Transform cultural options into the expected choice format
+    final choices = culturalOptions.map((option) {
+      return {
+        'id': option['id'],
+        'text': option['title'],
+        'description': option['description'],
+        'icon': Icons.info_outline,
+        'type': 'cultural',
+      };
+    }).toList();
+    
+    return StoryChoiceWidget(
+      choices: choices,
+      onChoiceSelected: (id, choice) => onSelected(id),
+      style: style,
+      enableHapticFeedback: enableHapticFeedback,
+    );
+  }
+  
+  /// Create a widget for coding challenge choices
+  static StoryChoiceWidget challengeChoices({
+    required List<Map<String, dynamic>> challenges,
+    required Function(String) onSelected,
+    List<String>? completedChallenges,
+    StoryChoiceStyle style = StoryChoiceStyle.descriptive,
+    bool enableHapticFeedback = true,
+  }) {
+    // Transform challenges into the expected choice format
+    final choices = challenges.map((challenge) {
+      final challengeId = challenge['id'] as String;
+      final isCompleted = completedChallenges?.contains(challengeId) ?? false;
+      
+      return {
+        'id': challengeId,
+        'text': challenge['title'],
+        'description': challenge['description'],
+        'icon': isCompleted ? Icons.check_circle : Icons.extension,
+        'type': 'challenge',
+        'consequence_type': isCompleted ? 'positive' : null,
+      };
+    }).toList();
+    
+    return StoryChoiceWidget(
+      choices: choices,
+      onChoiceSelected: (id, choice) => onSelected(id),
+      style: style,
       enableHapticFeedback: enableHapticFeedback,
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import '../l10n/app_localizations_delegate.dart';
 
 class LocalizationService {
   // Supported locales
@@ -12,6 +13,7 @@ class LocalizationService {
 
   // Localization delegates
   static final List<LocalizationsDelegate> localizationsDelegates = [
+    const AppLocalizationsDelegate(),
     GlobalMaterialLocalizations.delegate,
     GlobalWidgetsLocalizations.delegate,
     GlobalCupertinoLocalizations.delegate,

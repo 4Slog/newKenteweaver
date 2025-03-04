@@ -243,7 +243,7 @@ class _AIMentorWidgetState extends State<AIMentorWidget> with SingleTickerProvid
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        height: _isExpanded ? 300 : 120,
+        height: _isExpanded ? 300 : null, // Remove fixed height for non-expanded state
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -268,7 +268,7 @@ class _AIMentorWidgetState extends State<AIMentorWidget> with SingleTickerProvid
                   child: CircleAvatar(
                     backgroundColor: AppTheme.kenteGold.withOpacity(0.2),
                     child: Image.asset(
-                      'assets/images/characters/ananse_${_currentExpression}.png',
+                      'assets/images/characters/ananse.png',
                       errorBuilder: (context, error, stackTrace) {
                         return const Icon(Icons.auto_awesome);
                       },

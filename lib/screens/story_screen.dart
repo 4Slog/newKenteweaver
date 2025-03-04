@@ -10,9 +10,11 @@ import '../widgets/story_dialog.dart';
 import '../widgets/pattern_creation_workspace.dart';
 import '../widgets/breadcrumb_navigation.dart';
 import '../widgets/cultural_context_card.dart';
+import '../widgets/embedded_tutorial.dart';
 import '../services/gemini_story_service.dart';
 import '../services/audio_service.dart';
 import '../services/tts_service.dart';
+import '../services/adaptive_learning_service.dart';
 import '../navigation/app_router.dart';
 import '../extensions/breadcrumb_extensions.dart';
 
@@ -33,6 +35,7 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
   bool _showingDialog = false;
   bool _isLoading = true;
   bool _inChallengeMode = false;
+  bool _inTutorialMode = false;
   bool _showCulturalContext = false;
   bool _ttsEnabled = true;
   late GeminiStoryService _storyService;
@@ -42,6 +45,8 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
   BlockCollection? _challengeBlocks;
   Map<String, dynamic>? _currentChallenge;
   Map<String, dynamic>? _culturalContext;
+  String? _currentTutorialId;
+  List<String>? _tutorialSteps;
   late AnimationController _animationController;
   
   // Default image mappings for story steps
@@ -333,6 +338,9 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
       });
     }
     
+    // Check if this step has a tutorial
+    final hasTutorial = step.containsKey('hasTutorial') && step['hasTutorial'] == true;
+    
     // Extract content blocks if they exist, otherwise create a default block
     List<Map<String, dynamic>> contentBlocks = [];
     if (step.containsKey('contentBlocks') && step['contentBlocks'] is List) {
@@ -348,6 +356,105 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
       ];
     }
 
+    // Prepare choices based on step type
+    List<Map<String, dynamic>> dialogChoices;
+    
+    if (hasTutorial) {
+      // If this step has a tutorial, add a choice to start it
+      dialogChoices = [
+        {
+          'text': 'Start Tutorial',
+          'onTap': () {
+            Navigator.of(context).pop();
+            if (mounted) {
+              _handleTutorialStart(step);
+            }
+          },
+        },
+        {
+          'text': 'Skip Tutorial',
+          'onTap': () {
+            Navigator.of(context).pop();
+            if (mounted) {
+              setState(() {
+                _currentStoryStep++;
+                _showingDialog = false;
+              });
+              _scheduleNextDialog();
+            }
+          },
+        },
+      ];
+    } else if (isChallenge) {
+      // Challenge choices
+      dialogChoices = [
+        {
+          'text': 'Start Challenge',
+          'onTap': () {
+            Navigator.of(context).pop();
+            if (mounted) {
+              _handleChallengeStart(step);
+            }
+          },
+        },
+        {
+          'text': 'Skip for Now',
+          'onTap': () {
+            Navigator.of(context).pop();
+            if (mounted) {
+              setState(() {
+                _currentStoryStep++;
+                _showingDialog = false;
+              });
+              _scheduleNextDialog();
+            }
+          },
+        },
+      ];
+    } else if (step['hasChoice'] as bool) {
+      // Story choices
+      dialogChoices = (step['choices'] as List<dynamic>).map((choice) {
+        final choiceMap = choice as Map<String, dynamic>;
+        return {
+          'text': choiceMap['text'] as String,
+          'onTap': () {
+            Navigator.of(context).pop();
+            if (mounted) {
+              // Record choice for adaptive story generation
+              _userChoices.add({
+                'stepId': step['title'],
+                'choice': choiceMap['text'],
+                'timestamp': DateTime.now().toIso8601String(),
+              });
+              
+              setState(() {
+                _currentStoryStep = choiceMap['nextStep'] as int;
+                _showingDialog = false;
+              });
+              _scheduleNextDialog();
+            }
+          },
+        };
+      }).toList();
+    } else {
+      // Continue choice
+      dialogChoices = [
+        {
+          'text': 'Continue',
+          'onTap': () {
+            Navigator.of(context).pop();
+            if (mounted) {
+              setState(() {
+                _currentStoryStep++;
+                _showingDialog = false;
+              });
+              _scheduleNextDialog();
+            }
+          },
+        },
+      ];
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -356,74 +463,87 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
         content: step['content'] as String,
         imagePath: step['image'] as String,
         contentBlocks: contentBlocks,
-        hasChoices: step['hasChoice'] as bool,
+        hasChoices: true,
         ttsEnabled: _ttsEnabled,
-        choices: isChallenge 
-            ? [
-                {
-                  'text': 'Start Challenge',
-                  'onTap': () {
-                    Navigator.of(context).pop();
-                    if (mounted) {
-                      _handleChallengeStart(step);
-                    }
-                  },
-                },
-                {
-                  'text': 'Skip for Now',
-                  'onTap': () {
-                    Navigator.of(context).pop();
-                    if (mounted) {
-                      setState(() {
-                        _currentStoryStep++;
-                        _showingDialog = false;
-                      });
-                      _scheduleNextDialog();
-                    }
-                  },
-                },
-              ]
-            : step['hasChoice'] 
-                ? (step['choices'] as List<dynamic>).map((choice) {
-                    final choiceMap = choice as Map<String, dynamic>;
-                    return {
-                      'text': choiceMap['text'] as String,
-                      'onTap': () {
-                        Navigator.of(context).pop();
-                        if (mounted) {
-                          // Record choice for adaptive story generation
-                          _userChoices.add({
-                            'stepId': step['title'],
-                            'choice': choiceMap['text'],
-                            'timestamp': DateTime.now().toIso8601String(),
-                          });
-                          
-                          setState(() {
-                            _currentStoryStep = choiceMap['nextStep'] as int;
-                            _showingDialog = false;
-                          });
-                          _scheduleNextDialog();
-                        }
-                      },
-                    };
-                  }).toList()
-                : [
-                    {
-                      'text': 'Continue',
-                      'onTap': () {
-                        Navigator.of(context).pop();
-                        if (mounted) {
-                          setState(() {
-                            _currentStoryStep++;
-                            _showingDialog = false;
-                          });
-                          _scheduleNextDialog();
-                        }
-                      },
-                    },
-                  ],
+        choices: dialogChoices,
       ),
     );
+  }
+  
+  void _handleTutorialStart(Map<String, dynamic> storyStep) {
+    // Get tutorial data from story step
+    String tutorialId = storyStep['tutorialId'] as String? ?? 'basic_pattern_tutorial';
+    List<String>? tutorialSteps;
+    
+    if (storyStep.containsKey('tutorialSteps') && storyStep['tutorialSteps'] is List) {
+      tutorialSteps = List<String>.from(storyStep['tutorialSteps'] as List);
+    }
+    
+    // Hide the dialog and enter tutorial mode
+    setState(() {
+      _showingDialog = false;
+      _inTutorialMode = true;
+      _currentTutorialId = tutorialId;
+      _tutorialSteps = tutorialSteps;
+    });
+    
+    // Play tutorial music if available
+    final audioService = Provider.of<AudioService>(context, listen: false);
+    if (audioService.musicEnabled) {
+      audioService.playMusic(AudioType.learningTheme);
+    }
+  }
+  
+  void _handleTutorialComplete() {
+    // Record tutorial completion in adaptive learning service
+    try {
+      final adaptiveService = Provider.of<AdaptiveLearningService>(context, listen: false);
+      
+      // Record tutorial completion
+      adaptiveService.recordInteraction(
+        'tutorial_completed_in_story',
+        _currentTutorialId ?? 'unknown_tutorial',
+        data: {
+          'story_id': widget.lesson.id,
+          'story_step': _currentStoryStep,
+        },
+      );
+      
+      // Update concept mastery for basic concepts
+      adaptiveService.updateConceptMastery('block_connection', 0.3);
+      adaptiveService.updateConceptMastery('pattern_creation', 0.3);
+      adaptiveService.updateConceptMastery('color_selection', 0.3);
+    } catch (e) {
+      debugPrint('Error recording tutorial completion: $e');
+    }
+    
+    // Return to story mode
+    setState(() {
+      _inTutorialMode = false;
+      _currentTutorialId = null;
+      _tutorialSteps = null;
+      
+      // Check if the current step requires tutorial completion to proceed
+      final step = _storySteps[_currentStoryStep];
+      final requireTutorialCompletion = step.containsKey('requireTutorialCompletion') 
+          ? step['requireTutorialCompletion'] as bool 
+          : true;
+      
+      if (requireTutorialCompletion) {
+        _currentStoryStep++;
+      }
+      
+      _showingDialog = false;
+    });
+    
+    // Play success sound
+    final audioService = Provider.of<AudioService>(context, listen: false);
+    if (audioService.soundEnabled) {
+      audioService.playSoundEffect(AudioType.success);
+    }
+    
+    // Schedule next dialog
+    _scheduleNextDialog();
   }
   
   void _handleChallengeStart(Map<String, dynamic> storyStep) {
@@ -717,13 +837,22 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
               tooltip: 'Exit Challenge',
               onPressed: () => _exitChallenge(completed: false),
             ),
+          // Exit tutorial button when in tutorial mode
+          if (_inTutorialMode)
+            IconButton(
+              icon: const Icon(Icons.close),
+              tooltip: 'Exit Tutorial',
+              onPressed: _handleTutorialComplete,
+            ),
         ],
       ),
       body: _isLoading
           ? _buildLoadingView()
-          : _inChallengeMode
-              ? _buildChallengeWorkspace()
-              : _buildStoryView(),
+          : _inTutorialMode
+              ? _buildTutorialView()
+              : _inChallengeMode
+                  ? _buildChallengeWorkspace()
+                  : _buildStoryView(),
     );
   }
   
@@ -884,6 +1013,15 @@ class _StoryScreenState extends State<StoryScreen> with SingleTickerProviderStat
           ),
         ),
       ],
+    );
+  }
+  
+  Widget _buildTutorialView() {
+    return EmbeddedTutorial(
+      tutorialId: _currentTutorialId ?? 'basic_pattern_tutorial',
+      tutorialSteps: _tutorialSteps,
+      onTutorialComplete: _handleTutorialComplete,
+      showBreadcrumbs: true,
     );
   }
   

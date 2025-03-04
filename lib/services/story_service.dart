@@ -12,10 +12,15 @@ class StoryService {
 
     final nodeData = nodes.firstWhere(
           (node) => node['id'] == nodeId,
-      orElse: () => null,
+      orElse: () => <String, dynamic>{
+        'id': nodeId,
+        'title': 'Not Found',
+        'content': 'Node not found',
+        'chapter': 'introduction',
+      },
     );
 
-    if (nodeData == null) {
+    if (nodeData['id'] == nodeId && nodeData['title'] == 'Not Found') {
       return StoryNode(
         id: nodeId,
         title: 'Not Found',
@@ -106,6 +111,9 @@ class StoryService {
       case RequirementType.achievement:
         final achievementId = requirement.value as String;
         return userProvider.hasAchievement(achievementId);
+      case RequirementType.conceptMastered:
+        final conceptId = requirement.value as String;
+        return userProvider.hasConceptMastered(conceptId);
     }
   }
 }

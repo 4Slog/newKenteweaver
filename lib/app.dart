@@ -6,6 +6,7 @@ import 'theme/app_theme.dart';
 import 'providers/language_provider.dart';
 import 'providers/app_state_provider.dart';
 import 'services/localization_service.dart';
+import 'l10n/messages.dart';
 
 class KenteCodeWeaverApp extends StatelessWidget {
   const KenteCodeWeaverApp({super.key});

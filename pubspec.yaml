@@ -51,8 +51,10 @@ dev_dependencies:
   mockito: ^5.4.0
   build_runner: ^2.4.4
   lints: ^5.1.1
+  intl_translation: ^0.20.1
 
 flutter:
+  generate: true
   uses-material-design: true
 
   assets:

@@ -10,6 +10,7 @@ import '../models/pattern_difficulty.dart';
 import '../widgets/breadcrumb_navigation.dart';
 import '../navigation/app_router.dart';
 import '../extensions/breadcrumb_extensions.dart';
+import '../l10n/messages.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -95,12 +96,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(AppLocalizations.of(context).settings),
         // Add Kente pattern background to app bar
         flexibleSpace: Container(
           decoration: BoxDecoration(
             image: DecorationImage(
-              image: AssetImage('assets/images/patterns/background_pattern.png'),
+              image: AssetImage('assets/images/navigation/background_pattern.png'),
               fit: BoxFit.cover,
               opacity: 0.2,
             ),
@@ -113,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : Container(
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/images/patterns/background_pattern.png'),
+                  image: AssetImage('assets/images/navigation/background_pattern.png'),
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
                     Colors.white.withOpacity(0.95),
@@ -133,19 +134,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 16),
                   
-                  _buildSectionHeader(context, 'Language', Icons.language),
+                  _buildSectionHeader(context, AppLocalizations.of(context).language, Icons.language),
                   _buildLanguageSelector(languageProvider),
                   const SizedBox(height: 16),
                   
-                  _buildSectionHeader(context, 'Theme', Icons.palette),
+                  _buildSectionHeader(context, AppLocalizations.of(context).theme, Icons.palette),
                   _buildThemeSelector(),
                   const SizedBox(height: 16),
                   
-                  _buildSectionHeader(context, 'Audio', Icons.volume_up),
+                  _buildSectionHeader(context, AppLocalizations.of(context).audio_settings, Icons.volume_up),
                   _buildAudioSettings(),
                   const SizedBox(height: 16),
                   
-                  _buildSectionHeader(context, 'Notifications', Icons.notifications),
+                  _buildSectionHeader(context, AppLocalizations.of(context).notifications, Icons.notifications),
                   _buildSwitchSetting(
                     'Learning Reminders',
                     'Receive daily reminders to practice',
@@ -850,7 +851,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   applicationName: 'Kente Code Weaver',
                   applicationVersion: '1.0.0',
                   applicationIcon: Image.asset(
-                    'assets/images/patterns/background_pattern.png',
+                    'assets/images/navigation/background_pattern.png',
                     width: 50,
                     height: 50,
                   ),

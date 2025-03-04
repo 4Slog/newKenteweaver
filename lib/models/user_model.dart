@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class UserModel {
   final String id;
   final String name;
@@ -12,6 +14,11 @@ class UserModel {
   final DateTime lastActiveDate;
   final int currentStreak;
   final Map<String, int> difficultyStats;
+  
+  // New fields for enhanced story tracking
+  final Set<String> masteredConcepts;
+  final Map<String, dynamic> storyProgress;
+  final List<UserChoice> choiceHistory;
 
   UserModel({
     required this.id,
@@ -27,13 +34,38 @@ class UserModel {
     required this.lastActiveDate,
     this.currentStreak = 0,
     Map<String, int>? difficultyStats,
+    Set<String>? masteredConcepts,
+    Map<String, dynamic>? storyProgress,
+    List<UserChoice>? choiceHistory,
   })  : achievements = achievements ?? {},
         unlockedPatterns = unlockedPatterns ?? {},
         viewedPatterns = viewedPatterns ?? {},
-        difficultyStats = difficultyStats ?? {};
+        difficultyStats = difficultyStats ?? {},
+        masteredConcepts = masteredConcepts ?? {},
+        storyProgress = storyProgress ?? {},
+        choiceHistory = choiceHistory ?? [];
 
   int get xp => experience;
   String get username => name;
+  
+  // New getters for story progress
+  List<String> get completedStories => 
+      storyProgress.entries
+          .where((e) => e.value['completionScore'] != null && e.value['completionScore'] >= 0.9)
+          .map((e) => e.key)
+          .toList();
+  
+  List<String> get inProgressStories =>
+      storyProgress.entries
+          .where((e) => e.value['completionScore'] != null && e.value['completionScore'] < 0.9)
+          .map((e) => e.key)
+          .toList();
+  
+  double getStoryCompletionScore(String storyId) =>
+      storyProgress[storyId]?['completionScore'] ?? 0.0;
+  
+  List<String> getStoryConcepts(String storyId) =>
+      (storyProgress[storyId]?['conceptsPracticed'] as List?)?.cast<String>() ?? [];
 
   UserModel copyWith({
     String? id,
@@ -49,6 +81,9 @@ class UserModel {
     DateTime? lastActiveDate,
     int? currentStreak,
     Map<String, int>? difficultyStats,
+    Set<String>? masteredConcepts,
+    Map<String, dynamic>? storyProgress,
+    List<UserChoice>? choiceHistory,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -64,6 +99,9 @@ class UserModel {
       lastActiveDate: lastActiveDate ?? this.lastActiveDate,
       currentStreak: currentStreak ?? this.currentStreak,
       difficultyStats: difficultyStats ?? this.difficultyStats,
+      masteredConcepts: masteredConcepts ?? this.masteredConcepts,
+      storyProgress: storyProgress ?? this.storyProgress,
+      choiceHistory: choiceHistory ?? this.choiceHistory,
     );
   }
 
@@ -82,6 +120,9 @@ class UserModel {
       'lastActiveDate': lastActiveDate.toIso8601String(),
       'currentStreak': currentStreak,
       'difficultyStats': difficultyStats,
+      'masteredConcepts': masteredConcepts.toList(),
+      'storyProgress': storyProgress,
+      'choiceHistory': choiceHistory.map((c) => c.toJson()).toList(),
     };
   }
 
@@ -100,6 +141,44 @@ class UserModel {
       lastActiveDate: DateTime.parse(json['lastActiveDate'] as String),
       currentStreak: json['currentStreak'] as int,
       difficultyStats: Map<String, int>.from(json['difficultyStats'] as Map),
+      masteredConcepts: json['masteredConcepts'] != null
+          ? Set<String>.from(json['masteredConcepts'] as List)
+          : null,
+      storyProgress: json['storyProgress'] as Map<String, dynamic>?,
+      choiceHistory: json['choiceHistory'] != null
+          ? (json['choiceHistory'] as List)
+              .map((c) => UserChoice.fromJson(c as Map<String, dynamic>))
+              .toList()
+          : null,
     );
   }
+}
+
+/// Class for tracking user choices
+class UserChoice {
+  final String nodeId;
+  final String choiceId;
+  final String choiceText;
+  final String timestamp;
+  
+  UserChoice({
+    required this.nodeId,
+    required this.choiceId,
+    required this.choiceText,
+    required this.timestamp,
+  });
+  
+  Map<String, dynamic> toJson() => {
+    'nodeId': nodeId,
+    'choiceId': choiceId,
+    'choiceText': choiceText,
+    'timestamp': timestamp,
+  };
+  
+  factory UserChoice.fromJson(Map<String, dynamic> json) => UserChoice(
+    nodeId: json['nodeId'] as String,
+    choiceId: json['choiceId'] as String,
+    choiceText: json['choiceText'] as String,
+    timestamp: json['timestamp'] as String,
+  );
 }

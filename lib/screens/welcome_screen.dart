@@ -4,6 +4,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import '../services/localization_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/responsive_builder.dart';
+import '../l10n/messages.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -149,7 +150,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
             child: Column(
               children: [
                 Text(
-                  'Welcome to Kente Codeweaver',
+                  AppLocalizations.of(context).welcomeMessage,
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     color: AppTheme.kenteGold,
                     fontWeight: FontWeight.bold,
@@ -306,7 +307,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                   _currentStep--;
                 });
               },
-              child: const Text('Previous'),
+              child: Text(AppLocalizations.of(context).previous),
             )
           else
             const SizedBox(width: 80),
@@ -328,7 +329,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
               ),
             ),
             child: Text(
-              _currentStep < 2 ? 'Next' : 'Start Learning',
+              _currentStep < 2 ? AppLocalizations.of(context).next : AppLocalizations.of(context).start,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

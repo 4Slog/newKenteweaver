@@ -1,190 +1,197 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
+/// A widget that displays an animated hint for tutorials
 class AnimatedTutorialHint extends StatefulWidget {
+  /// The hint text to display
   final String text;
-  final VoidCallback onClose;
-  final IconData? icon;
-  final double maxWidth;
-  final bool showArrow;
-  final Color? backgroundColor;
-  final Duration animationDuration;
-
+  
+  /// Callback when the hint is closed
+  final VoidCallback? onClose;
+  
+  /// Whether to show an icon
+  final bool showIcon;
+  
+  /// The icon to display
+  final IconData icon;
+  
+  /// The color of the hint background
+  final Color backgroundColor;
+  
+  /// The color of the hint text
+  final Color textColor;
+  
   const AnimatedTutorialHint({
     Key? key,
     required this.text,
-    required this.onClose,
+    this.onClose,
+    this.showIcon = true,
     this.icon = Icons.lightbulb,
-    this.maxWidth = 320,
-    this.showArrow = false,
-    this.backgroundColor,
-    this.animationDuration = const Duration(milliseconds: 500),
+    this.backgroundColor = const Color(0xFFFFF8E1), // Light amber
+    this.textColor = Colors.black87,
   }) : super(key: key);
 
   @override
   State<AnimatedTutorialHint> createState() => _AnimatedTutorialHintState();
 }
 
-class _AnimatedTutorialHintState extends State<AnimatedTutorialHint> with SingleTickerProviderStateMixin {
+class _AnimatedTutorialHintState extends State<AnimatedTutorialHint>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
   late Animation<double> _scaleAnimation;
-
+  late Animation<double> _opacityAnimation;
+  
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: widget.animationDuration,
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    
+    _scaleAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutBack,
     );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 0.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.8, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 60,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.02)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 20,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.02, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 20,
-      ),
-    ]).animate(_controller);
-
+    
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+    ));
+    
+    // Start the animation
     _controller.forward();
   }
-
+  
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
-
-  Future<void> _closeWithAnimation() async {
-    await _controller.reverse();
-    widget.onClose();
-  }
-
+  
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: ScaleTransition(
-          scale: _scaleAnimation,
-          child: Container(
-            constraints: BoxConstraints(
-              maxWidth: widget.maxWidth,
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: FadeTransition(
+        opacity: _opacityAnimation,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: widget.backgroundColor,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(
+              color: AppTheme.kenteGold.withOpacity(0.3),
+              width: 1,
             ),
-            decoration: BoxDecoration(
-              color: widget.backgroundColor ?? Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: IntrinsicHeight(  // Fixes overflow issues
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            widget.icon,
-                            color: AppTheme.kenteGold,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              widget.text,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: _closeWithAnimation,
-                            child: const Padding(
-                              padding: EdgeInsets.only(left: 8.0),
-                              child: Icon(
-                                Icons.close,
-                                size: 18,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.showIcon) ...[
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.kenteGold.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        widget.icon,
+                        color: AppTheme.kenteGold,
+                        size: 20,
                       ),
                     ),
-                    if (widget.showArrow)
-                      Container(
-                        width: double.infinity,
-                        height: 8,
-                        color: widget.backgroundColor ?? Colors.white,
-                        child: CustomPaint(
-                          painter: ArrowPainter(
-                            color: widget.backgroundColor ?? Colors.white,
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Hint',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.text,
+                          style: TextStyle(
+                            color: widget.textColor,
+                            fontSize: 14,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (widget.onClose != null)
+                    GestureDetector(
+                      onTap: widget.onClose,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-            ),
+              const SizedBox(height: 8),
+              _buildPulsatingIndicator(),
+            ],
           ),
         ),
       ),
     );
   }
-}
-
-class ArrowPainter extends CustomPainter {
-  final Color color;
-
-  ArrowPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path()
-      ..moveTo(size.width / 2 - 8, 0)
-      ..lineTo(size.width / 2 + 8, 0)
-      ..lineTo(size.width / 2, 8)
-      ..close();
-
-    canvas.drawPath(path, paint);
+  
+  Widget _buildPulsatingIndicator() {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(seconds: 2),
+      curve: Curves.easeInOut,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: 0.3 + (0.7 * (value > 0.5 ? 1.0 - value : value) * 2),
+          child: Container(
+            height: 4,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.kenteGold.withOpacity(0.3),
+                  AppTheme.kenteGold,
+                  AppTheme.kenteGold.withOpacity(0.3),
+                ],
+                stops: [0.0, value, 1.0],
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        );
+      },
+      child: Container(),
+    );
   }
-
-  @override
-  bool shouldRepaint(ArrowPainter oldDelegate) => color != oldDelegate.color;
 }

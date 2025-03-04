@@ -263,6 +263,12 @@ class StoryNode {
   final Challenge? challenge;
   final Map<String, dynamic>? culturalContextData;
   final List<String>? conceptsTaught;
+  
+  // Tutorial integration fields
+  final bool hasTutorial;
+  final String? tutorialId;
+  final List<String>? tutorialSteps;
+  final bool requireTutorialCompletion;
 
   const StoryNode({
     required this.id,
@@ -284,6 +290,10 @@ class StoryNode {
     this.challenge,
     this.culturalContextData,
     this.conceptsTaught,
+    this.hasTutorial = false,
+    this.tutorialId,
+    this.tutorialSteps,
+    this.requireTutorialCompletion = true,
   });
 
   // Convert to JSON
@@ -308,6 +318,10 @@ class StoryNode {
       'challenge': challenge?.toJson(),
       'culturalContextData': culturalContextData,
       'conceptsTaught': conceptsTaught,
+      'hasTutorial': hasTutorial,
+      'tutorialId': tutorialId,
+      'tutorialSteps': tutorialSteps,
+      'requireTutorialCompletion': requireTutorialCompletion,
     };
   }
 
@@ -353,6 +367,12 @@ class StoryNode {
       conceptsTaught: json['conceptsTaught'] != null
           ? List<String>.from(json['conceptsTaught'])
           : null,
+      hasTutorial: json['hasTutorial'] ?? false,
+      tutorialId: json['tutorialId'],
+      tutorialSteps: json['tutorialSteps'] != null
+          ? List<String>.from(json['tutorialSteps'])
+          : null,
+      requireTutorialCompletion: json['requireTutorialCompletion'] ?? true,
     );
   }
 

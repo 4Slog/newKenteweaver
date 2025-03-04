@@ -534,7 +534,7 @@ class StoryProgressionService {
     _progressCache.remove('${userId}_$storyId');
     
     // Remove from storage
-    await _storage.delete('$_progressPrefix${userId}_$storyId');
+    await _storage.remove('$_progressPrefix${userId}_$storyId');
   }
   
   /// Resets all story progress for a user
@@ -547,7 +547,7 @@ class StoryProgressionService {
     final unlockedStoriesKey = '$_unlockedStoriesKey$userId';
     
     // Delete progress and unlock data
-    await _storage.delete(unlockedStoriesKey);
+    await _storage.remove(unlockedStoriesKey);
     
     // Note: In a real implementation, we would need a way to list keys
     // with a prefix in the StorageService. For now, we'll work with what we have.

@@ -7,6 +7,8 @@ import 'services/storage_service.dart';
 import 'services/progress_service.dart';
 import 'services/audio_service.dart';
 import 'services/tts_service.dart';
+import 'services/adaptive_learning_service.dart';
+import 'services/tutorial_service.dart';
 import 'providers/app_state_provider.dart';
 import 'providers/language_provider.dart';
 import 'package:provider/provider.dart';
@@ -18,8 +20,8 @@ void main() async {
   await dotenv.load(fileName: '.env');
   
   // Initialize services
-  final prefs = await SharedPreferences.getInstance();
-  final storageService = StorageService(prefs);
+  final storageService = StorageService();
+  await storageService.initialize();
   final progressService = ProgressService(storageService);
   
   // Initialize audio and TTS services
@@ -27,6 +29,13 @@ void main() async {
   await audioService.initialize();
   final ttsService = TTSService();
   await ttsService.initialize();
+  
+  // Initialize adaptive learning service
+  final adaptiveLearningService = AdaptiveLearningService();
+  await adaptiveLearningService.initialize();
+  
+  // Initialize tutorial service
+  final tutorialService = TutorialService();
 
   // Initialize Gemini AI model
   final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
@@ -48,6 +57,8 @@ void main() async {
         Provider.value(value: model),
         Provider.value(value: audioService),
         Provider.value(value: ttsService),
+        ChangeNotifierProvider.value(value: adaptiveLearningService),
+        Provider.value(value: tutorialService),
       ],
       child: const KenteCodeWeaverApp(),
     ),
