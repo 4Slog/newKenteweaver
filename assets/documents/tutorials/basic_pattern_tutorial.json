@@ -1,0 +1,88 @@
+{
+  "id": "basic_pattern_tutorial",
+  "title": "Creating Your First Pattern",
+  "description": "Learn how to create your first Kente pattern using pattern blocks",
+  "difficulty": "basic",
+  "targetAge": "7-8",
+  "estimatedDuration": 15,
+  "prerequisites": [],
+  "learningObjectives": [
+    "Understand how to use pattern blocks",
+    "Create a simple Dame-Dame pattern",
+    "Connect pattern and color blocks",
+    "Generate a visual pattern"
+  ],
+  "steps": [
+    {
+      "id": "intro_step",
+      "title": "Welcome to Pattern Blocks",
+      "description": "Anansi has prepared special blocks that represent different weaving techniques. These blocks will help you create beautiful Kente patterns just like the weavers in Ghana!",
+      "type": "introduction",
+      "imageAsset": "assets/images/tutorial/blocks_overview.png",
+      "hint": "Look at the toolbox on the left side of your screen. You'll find different types of blocks there."
+    },
+    {
+      "id": "pattern_step",
+      "title": "Your First Pattern Block",
+      "description": "Let's start by adding a pattern block to your workspace. Find the Dame-Dame Pattern block in the toolbox and drag it to the workspace area.",
+      "type": "blockDragging",
+      "imageAsset": "assets/images/tutorial/drag_pattern_block.png",
+      "hint": "The Dame-Dame Pattern block has a checkerboard icon. Click and drag it from the toolbox to the empty space on the right."
+    },
+    {
+      "id": "color_step",
+      "title": "Adding Colors",
+      "description": "Now let's add some color to your pattern. Find the Gold Thread block in the color section of the toolbox and drag it to your workspace.",
+      "type": "colorSelection",
+      "imageAsset": "assets/images/tutorial/add_color_block.png",
+      "hint": "Colors are important in Kente weaving. Gold represents wealth and royalty in Ghanaian culture."
+    },
+    {
+      "id": "connection_step",
+      "title": "Connecting Blocks",
+      "description": "Great! Now we need to connect these blocks together. Click on the small circle on the right side of the Gold Thread block and drag to the small circle on the left side of the Dame-Dame Pattern block.",
+      "type": "blockDragging",
+      "imageAsset": "assets/images/tutorial/connect_blocks.png",
+      "hint": "The connection points are small circles on the sides of the blocks. When you hover over them, they will highlight."
+    },
+    {
+      "id": "second_color_step",
+      "title": "Adding Another Color",
+      "description": "Let's add another color to make our pattern more interesting. Find the Black Thread block and add it to your workspace. Then connect it to the pattern block.",
+      "type": "colorSelection",
+      "imageAsset": "assets/images/tutorial/add_second_color.png",
+      "hint": "In Kente weaving, black represents maturity and spiritual energy."
+    },
+    {
+      "id": "cultural_context_step",
+      "title": "Understanding Dame-Dame",
+      "description": "The Dame-Dame pattern you're creating is one of the most fundamental patterns in Kente weaving. It represents duality and balance - the interplay of opposites that creates harmony in life.",
+      "type": "culturalContext",
+      "imageAsset": "assets/images/tutorial/dame_dame_cultural.png",
+      "hint": "Many Kente patterns have deep cultural meanings. Dame-Dame is often one of the first patterns young weavers learn in Ghana."
+    },
+    {
+      "id": "preview_step",
+      "title": "Generating Your Pattern",
+      "description": "Now it's time to see your pattern! Look for the 'Generate Pattern' button at the bottom right of the screen and click it to see your Dame-Dame pattern come to life.",
+      "type": "challenge",
+      "imageAsset": "assets/images/tutorial/generate_pattern.png",
+      "hint": "The 'Generate Pattern' button has a play icon on it. Click it to see your creation!"
+    },
+    {
+      "id": "completion_step",
+      "title": "Congratulations!",
+      "description": "You've created your first Kente pattern! This Dame-Dame pattern is the foundation of Kente weaving. You can now experiment with different colors and variations to create your own unique designs.",
+      "type": "challenge",
+      "imageAsset": "assets/images/tutorial/completed_pattern.png",
+      "hint": "Try creating the same pattern with different colors to see how it changes the feeling of the design."
+    }
+  ],
+  "nextTutorialId": "intermediate_pattern_tutorial",
+  "metadata": {
+    "version": "1.0.0",
+    "author": "Kente Code Weaver Team",
+    "createdAt": "2025-03-06",
+    "tags": ["beginner", "pattern", "cultural"]
+  }
+}

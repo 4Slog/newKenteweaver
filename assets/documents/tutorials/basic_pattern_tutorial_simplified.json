@@ -1,0 +1,71 @@
+{
+  "id": "basic_pattern_tutorial_simplified",
+  "title": "Your First Steps in Pattern Creation",
+  "description": "A gentle introduction to creating your first Kente pattern",
+  "difficulty": "basic",
+  "targetAge": "7-8",
+  "estimatedDuration": 8,
+  "prerequisites": [],
+  "learningObjectives": [
+    "Understand the basics of pattern blocks",
+    "Create a simple pattern with guidance",
+    "Experience success in pattern creation"
+  ],
+  "steps": [
+    {
+      "id": "intro_step_simplified",
+      "title": "Taking Your First Steps",
+      "description": "Don't worry, we'll start very simple. Anansi is here to help you every step of the way. Creating patterns is fun and easy once you get started!",
+      "type": "introduction",
+      "imageAsset": "assets/images/tutorial/gentle_intro.png",
+      "hint": "Remember, everyone starts as a beginner. You're doing great just by being here!"
+    },
+    {
+      "id": "pattern_step_simplified",
+      "title": "Creating a Simple Pattern",
+      "description": "Let's start with something simple. See the Dame-Dame Pattern block in the toolbox? It has a checkerboard icon. Click on it and drag it to the empty workspace on the right.",
+      "type": "blockDragging",
+      "imageAsset": "assets/images/tutorial/simplified_drag_pattern.png",
+      "hint": "The Dame-Dame Pattern block is in the toolbox on the left side. It has a black and white checkerboard icon."
+    },
+    {
+      "id": "color_step_simplified",
+      "title": "Adding Your First Color",
+      "description": "Great job! Now let's add some color. Find the Gold Thread block in the toolbox. It has a golden color. Drag it to the workspace and place it near your pattern block.",
+      "type": "colorSelection",
+      "imageAsset": "assets/images/tutorial/simplified_add_color.png",
+      "hint": "The Gold Thread block is in the color section of the toolbox. It has a golden yellow color."
+    },
+    {
+      "id": "connection_step_simplified",
+      "title": "Connecting Your Blocks",
+      "description": "Now we need to connect these blocks together. See the small circle on the right side of the Gold Thread block? Click on it and drag to the small circle on the left side of the Dame-Dame Pattern block.",
+      "type": "blockDragging",
+      "imageAsset": "assets/images/tutorial/simplified_connect.png",
+      "hint": "The connection points are small circles on the sides of the blocks. Drag from the Gold Thread block to the Pattern block."
+    },
+    {
+      "id": "preview_step_simplified",
+      "title": "Seeing Your Creation",
+      "description": "You're doing great! Now let's see your pattern. Look for the 'Generate Pattern' button at the bottom right of the screen. It has a play icon on it. Click this button to see your pattern come to life!",
+      "type": "challenge",
+      "imageAsset": "assets/images/tutorial/simplified_generate.png",
+      "hint": "The 'Generate Pattern' button is at the bottom right of your screen. It has a triangle play icon on it."
+    },
+    {
+      "id": "celebration_step",
+      "title": "Celebrating Your Success",
+      "description": "Wonderful! You've created your first Kente pattern! This pattern is called Dame-Dame, which means 'checkerboard' in Twi. It's one of the first patterns that young weavers learn in Ghana. You should be proud of yourself!",
+      "type": "culturalContext",
+      "imageAsset": "assets/images/tutorial/simplified_celebration.png",
+      "hint": "You've taken your first steps into the world of Kente patterns. There's so much more to explore when you're ready!"
+    }
+  ],
+  "nextTutorialId": "basic_pattern_tutorial",
+  "metadata": {
+    "version": "1.0.0",
+    "author": "Kente Code Weaver Team",
+    "createdAt": "2025-03-06",
+    "tags": ["beginner", "simplified", "gentle introduction"]
+  }
+}
