@@ -499,8 +499,14 @@ class _BlocksToolboxState extends State<BlocksToolbox> with SingleTickerProvider
       margin: const EdgeInsets.only(bottom: 8),
       child: DraggableBlock(
         blockId: block.id,
-        onDragStarted: () {},
-        onDragEndSimple: () {},
+        onDragStarted: () {
+          // Log drag start for debugging
+          debugPrint('Started dragging block: ${block.id}');
+        },
+        onDragEndSimple: () {
+          // Log drag end for debugging
+          debugPrint('Ended dragging block: ${block.id}');
+        },
         onDoubleTap: () => widget.onBlockSelected(block),
         child: ListTile(
           leading: _buildBlockIcon(block),
@@ -518,8 +524,9 @@ class _BlocksToolboxState extends State<BlocksToolbox> with SingleTickerProvider
           )
               : null,
           dense: true,
-          onTap: () => widget.onBlockSelected(block),
-          trailing: const Icon(Icons.add, size: 18, color: Colors.grey),
+          // Remove onTap handler to avoid interfering with drag functionality
+          // Instead, use the onDoubleTap on the DraggableBlock
+          trailing: const Icon(Icons.drag_indicator, size: 18, color: Colors.grey),
         ),
       ),
     );

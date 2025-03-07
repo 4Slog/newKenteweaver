@@ -18,21 +18,116 @@ class PatternEngine {
         int rows = 16,
         int columns = 16,
       }) {
-    // Initialize empty pattern
-    List<List<Color>> pattern = List.generate(
-      rows,
-          (_) => List.generate(columns, (_) => Colors.white),
-    );
+    try {
+      // Initialize empty pattern
+      List<List<Color>> pattern = List.generate(
+        rows,
+        (_) => List.generate(columns, (_) => Colors.white),
+      );
 
-    // Find root blocks (those with no input connections)
-    final rootBlocks = _findRootBlocks(blockCollection);
+      // Log for debugging
+      debugPrint('Generating pattern from ${blockCollection.blocks.length} blocks');
 
-    // Process each root block
-    for (final rootBlock in rootBlocks) {
-      _processBlock(rootBlock, pattern, blockCollection);
+      // Find root blocks (those with no input connections)
+      final rootBlocks = _findRootBlocks(blockCollection);
+      
+      // Log found root blocks
+      debugPrint('Found ${rootBlocks.length} root blocks');
+      for (final block in rootBlocks) {
+        debugPrint('Root block: ${block.id} (${block.type})');
+      }
+
+      // If no root blocks found, try to find pattern blocks as starting points
+      if (rootBlocks.isEmpty && blockCollection.blocks.isNotEmpty) {
+        debugPrint('No root blocks found, trying pattern blocks as starting points');
+        final patternBlocks = blockCollection.blocks.where((b) => b.type == BlockType.pattern).toList();
+        
+        if (patternBlocks.isNotEmpty) {
+          debugPrint('Using ${patternBlocks.length} pattern blocks as starting points');
+          for (final patternBlock in patternBlocks) {
+            _processBlock(patternBlock, pattern, blockCollection);
+          }
+        } else {
+          // If no pattern blocks, try color blocks
+          debugPrint('No pattern blocks found, trying color blocks');
+          final colorBlocks = blockCollection.blocks.where((b) => b.type == BlockType.color).toList();
+          
+          if (colorBlocks.isNotEmpty) {
+            debugPrint('Using ${colorBlocks.length} color blocks as starting points');
+            // Collect colors from all color blocks
+            final colors = <Color>[];
+            for (final colorBlock in colorBlocks) {
+              _collectColor(colorBlock, colors);
+            }
+            
+            // Apply a default pattern with the collected colors
+            _applyDefaultPattern(pattern, colors);
+          } else {
+            // If no color blocks either, use all blocks as starting points
+            debugPrint('No color blocks found, using all blocks as starting points');
+            for (final block in blockCollection.blocks) {
+              _processBlock(block, pattern, blockCollection);
+            }
+          }
+        }
+      } else {
+        // Process each root block
+        for (final rootBlock in rootBlocks) {
+          _processBlock(rootBlock, pattern, blockCollection);
+        }
+      }
+
+      // Verify pattern has content
+      bool hasContent = false;
+      for (final row in pattern) {
+        for (final color in row) {
+          if (color != Colors.white) {
+            hasContent = true;
+            break;
+          }
+        }
+        if (hasContent) break;
+      }
+      
+      // If pattern is empty, generate fallback pattern
+      if (!hasContent && blockCollection.blocks.isNotEmpty) {
+        debugPrint('Generated pattern is empty, using fallback');
+        return _generateFallbackPattern(rows, columns);
+      }
+
+      return pattern;
+    } catch (e, stackTrace) {
+      debugPrint('Error generating pattern: $e');
+      debugPrint('Stack trace: $stackTrace');
+      // Return a fallback pattern on error
+      return _generateFallbackPattern(rows, columns);
     }
-
-    return pattern;
+  }
+  
+  // Generate a fallback pattern when normal generation fails
+  List<List<Color>> _generateFallbackPattern(int rows, int columns) {
+    // Create a simple checkerboard pattern as fallback
+    final colors = [Colors.black, Colors.amber];
+    return List.generate(rows, (r) {
+      return List.generate(columns, (c) {
+        return (r + c) % 2 == 0 ? colors[0] : colors[1];
+      });
+    });
+  }
+  
+  // Apply a default pattern with the given colors
+  void _applyDefaultPattern(List<List<Color>> pattern, List<Color> colors) {
+    if (colors.isEmpty) {
+      colors = [Colors.black, Colors.amber];
+    }
+    
+    // Apply a simple checker pattern
+    for (int r = 0; r < pattern.length; r++) {
+      for (int c = 0; c < pattern[r].length; c++) {
+        final colorIdx = (r + c) % colors.length;
+        pattern[r][c] = colors[colorIdx];
+      }
+    }
   }
 
   // Find blocks with no input connections

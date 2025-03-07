@@ -5,6 +5,7 @@ import '../models/pattern_difficulty.dart';
 import '../screens/achievement_screen.dart';
 import '../screens/ai_response_screen.dart';
 import '../screens/challenge_screen.dart';
+import '../screens/error_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/interactive_lesson_screen.dart';
 import '../screens/learning_hub_screen.dart';
@@ -32,10 +33,11 @@ class AppRouter {
   static const String aiResponse = '/ai-response';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    final args = settings.arguments;
-    final name = settings.name;
+    try {
+      final args = settings.arguments;
+      final name = settings.name;
 
-    if (name == home) {
+      if (name == home) {
       return MaterialPageRoute(builder: (_) => const HomeScreen());
     } else if (name == welcome) {
       return MaterialPageRoute(builder: (_) => const WelcomeScreen());
@@ -78,14 +80,46 @@ class AppRouter {
       return MaterialPageRoute(
         builder: (_) => AIResponseScreen(feedback: args),
       );
-    }
+      }
 
-    return MaterialPageRoute(
-      builder: (_) => Scaffold(
-        body: Center(
-          child: Text('No route defined for ${settings.name}'),
+      // Default route if no match is found
+      return MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Not Found'),
+            backgroundColor: Colors.orange,
+          ),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.warning_amber_rounded, size: 64, color: Colors.orange),
+                const SizedBox(height: 16),
+                Text(
+                  'No route defined for ${settings.name}',
+                  style: const TextStyle(fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.pushReplacementNamed(context, home),
+                  child: const Text('Go to Home Screen'),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      debugPrint('Navigation error: $e');
+      // Return a fallback route to prevent crashes
+      return MaterialPageRoute(
+        builder: (context) => ErrorScreen(
+          message: 'Navigation error occurred',
+          details: e.toString(),
+          onRetry: () => Navigator.pushReplacementNamed(context, home),
+        ),
+      );
+    }
   }
 }
