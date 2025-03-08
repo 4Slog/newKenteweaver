@@ -9,15 +9,15 @@ enum AudioType {
   cancelTap,
   confirmationTap,
   navigationTap,
-  success,    // Added success sound type
-  failure,    // Added failure sound type
-  achievement, // Added achievement sound type
+  success,
+  failure,
+  achievement,
 
   // Background music
   mainTheme,
   menuTheme,
   learningTheme,
-  challengeTheme, // Added challenge theme music
+  challengeTheme,
 }
 
 /// Service for handling all audio-related functionality in the app
