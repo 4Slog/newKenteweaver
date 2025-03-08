@@ -1,143 +1,123 @@
 import 'package:flutter/material.dart';
+import '../models/block_model.dart';
+import '../theme/app_theme.dart';
 
-class DraggableBlock extends StatefulWidget {
-  final Widget child;
-  final String blockId;
-  final bool isLocked;
+class DraggableBlock extends StatelessWidget {
+  final Block block;
   final VoidCallback onDragStarted;
-  final void Function(DraggableDetails)? onDragEndWithDetails;
-  final VoidCallback onDragEndSimple;
-  final bool Function(DragTargetDetails<String>)? onWillAccept;
-  final void Function(DragTargetDetails<String>)? onAccept;
-  final Function(Offset)? onDragUpdate;
-  final VoidCallback? onDoubleTap;
-  final Function(PointerDownEvent)? onPointerDown;
-  final Function(PointerUpEvent)? onPointerUp;
-  final bool showFeedback;
+  final VoidCallback? onDragEndSimple;
+  final VoidCallback onTap;
+  final double scale;
+  final bool showLabel;
+  final bool isCollapsed;
 
   const DraggableBlock({
     super.key,
-    required this.child,
-    required this.blockId,
+    required this.block,
     required this.onDragStarted,
-    this.onDragEndWithDetails,
-    required this.onDragEndSimple,
-    this.isLocked = false,
-    this.onWillAccept,
-    this.onAccept,
-    this.onDragUpdate,
-    this.onDoubleTap,
-    this.onPointerDown,
-    this.onPointerUp,
-    this.showFeedback = true,
+    this.onDragEndSimple,
+    required this.onTap,
+    this.scale = 1.0,
+    this.showLabel = true,
+    this.isCollapsed = false,
   });
 
   @override
-  State<DraggableBlock> createState() => _DraggableBlockState();
-}
-
-class _DraggableBlockState extends State<DraggableBlock> {
-  bool _isDragging = false;
-  bool _isHovering = false;
-
-  void _handleDragEnd(DraggableDetails details) {
-    setState(() {
-      _isDragging = false;
-    });
-    widget.onDragEndWithDetails?.call(details);
-    widget.onDragEndSimple();
-  }
-
-  void _handleDragUpdate(DragUpdateDetails details) {
-    widget.onDragUpdate?.call(details.globalPosition);
-  }
-
-  void _handleDragStarted() {
-    setState(() {
-      _isDragging = true;
-    });
-    widget.onDragStarted();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.isLocked) {
-      return widget.child;
-    }
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovering = true),
-      onExit: (_) => setState(() => _isHovering = false),
+    return Draggable<Block>(
+      data: block,
+      onDragStarted: onDragStarted,
+      onDragEnd: (_) => onDragEndSimple?.call(),
+      feedback: _buildBlockPreview(context, isDragging: true),
+      childWhenDragging: _buildBlockPreview(context, isGhost: true),
       child: GestureDetector(
-        onDoubleTap: widget.onDoubleTap,
-        child: Listener(
-          onPointerDown: widget.onPointerDown,
-          onPointerUp: widget.onPointerUp,
-          child: Draggable<String>(
-            data: widget.blockId,
-            onDragStarted: _handleDragStarted,
-            onDragEnd: _handleDragEnd,
-            onDragUpdate: widget.onDragUpdate != null ? _handleDragUpdate : null,
-            feedback: widget.showFeedback ? Material(
-              elevation: 8.0,
-              color: Colors.transparent,
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 200),
-                child: widget.child,
-              ),
-            ) : const SizedBox.shrink(),
-            childWhenDragging: Opacity(
-              opacity: 0.5,
-              child: widget.child,
-            ),
-            child: DragTarget<String>(
-              onWillAccept: (data) {
-                if (widget.onWillAccept != null && data != null) {
-                  return widget.onWillAccept!(DragTargetDetails<String>(
-                    data: data,
-                    offset: Offset.zero,
-                  ));
-                }
-                return false;
-              },
-              onAccept: (data) {
-                if (widget.onAccept != null) {
-                  widget.onAccept!(DragTargetDetails<String>(
-                    data: data,
-                    offset: Offset.zero,
-                  ));
-                }
-              },
-              builder: (context, candidateData, rejectedData) {
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: _isDragging
-                          ? Colors.blue
-                          : _isHovering
-                          ? Colors.blue.withOpacity(0.5)
-                          : Colors.transparent,
-                      width: 2,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: _isHovering && !_isDragging
-                        ? [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                        : null,
-                  ),
-                  child: widget.child,
-                );
-              },
-            ),
-          ),
-        ),
+        onTap: onTap,
+        child: _buildBlockPreview(context),
       ),
     );
+  }
+
+  Widget _buildBlockPreview(BuildContext context, {
+    bool isDragging = false,
+    bool isGhost = false,
+  }) {
+    final blockContent = Container(
+      width: isCollapsed ? 48 : 120 * scale,
+      height: isCollapsed ? 48 : 120 * scale,
+      decoration: BoxDecoration(
+        color: isGhost
+            ? Colors.grey.withOpacity(0.3)
+            : block.color,
+        borderRadius: BorderRadius.circular(12 * scale),
+        boxShadow: isDragging
+            ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            _getBlockIcon(),
+            size: isCollapsed ? 24 : 32 * scale,
+            color: Colors.white,
+          ),
+          if (showLabel && !isCollapsed) ...[
+            const SizedBox(height: 8),
+            Text(
+              block.name,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12 * scale,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    if (isDragging) {
+      return Transform.scale(
+        scale: 1.1,
+        child: blockContent,
+      );
+    }
+
+    return blockContent;
+  }
+
+  IconData _getBlockIcon() {
+    switch (block.type) {
+      case BlockType.pattern:
+        return Icons.grid_on;
+      case BlockType.color:
+        return Icons.palette;
+      case BlockType.structure:
+        return Icons.architecture;
+      case BlockType.loop:
+        return Icons.loop;
+      case BlockType.row:
+        return Icons.view_stream;
+      case BlockType.column:
+        return Icons.view_column;
+      default:
+        return Icons.widgets;
+    }
+  }
+}
+
+extension HexColor on Color {
+  static Color fromHex(String hexString) {
+    final buffer = StringBuffer();
+    if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
+    buffer.write(hexString.replaceFirst('#', ''));
+    return Color(int.parse(buffer.toString(), radix: 16));
   }
 }

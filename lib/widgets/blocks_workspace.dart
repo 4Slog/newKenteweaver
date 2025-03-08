@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/block_model.dart';
 import '../models/pattern_difficulty.dart';
+import '../services/block_definition_service.dart';
 import 'connected_block.dart';
 
 class BlocksWorkspace extends StatefulWidget {
@@ -55,34 +56,73 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.drag_indicator,
-            size: 48,
-            color: Colors.grey[400],
+    return DragTarget<String>(
+      onWillAccept: (data) {
+        // Accept any block ID
+        return data != null;
+      },
+      onAccept: (blockId) {
+        // Get the block definition from the service
+        final blockDefinitionService = BlockDefinitionService();
+        final block = blockDefinitionService.getBlockById(blockId);
+        
+        if (block != null) {
+          // Add the block to the workspace
+          widget.onBlockSelected(block);
+          
+          // Log for debugging
+          debugPrint('Added block to workspace: $blockId');
+        } else {
+          debugPrint('Block not found: $blockId');
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        // Visual feedback when dragging over
+        final isDraggingOver = candidateData.isNotEmpty;
+        
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDraggingOver ? Colors.blue : Colors.transparent,
+              width: 2,
+            ),
+            color: isDraggingOver ? Colors.blue.withOpacity(0.1) : Colors.transparent,
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Drag blocks here to start weaving!',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.drag_indicator,
+                  size: 48,
+                  color: isDraggingOver ? Colors.blue : Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isDraggingOver 
+                      ? 'Release to add block!' 
+                      : 'Drag blocks here to start weaving!',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isDraggingOver ? Colors.blue : Colors.grey[600],
+                    fontWeight: isDraggingOver ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tip: Traditional Kente patterns start with color blocks',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Tip: Traditional Kente patterns start with color blocks',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -110,20 +150,63 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
     );
   }
 
+  // Track active connection dragging
+  String? _activeDragBlockId;
+  String? _activeConnectionId;
+  Offset? _currentDragPosition;
+
   void _handleConnectionDragStart(String blockId, String connectionId) {
-    // Implement connection drag start
+    setState(() {
+      _activeDragBlockId = blockId;
+      _activeConnectionId = connectionId;
+      
+      // Log for debugging
+      debugPrint('Started connection drag: $blockId, $connectionId');
+    });
   }
 
   void _handleConnectionDragUpdate(Offset position) {
-    // Implement connection drag update
+    setState(() {
+      _currentDragPosition = position;
+    });
   }
 
   void _handleConnectionDragEnd(String targetBlockId, String targetConnectionId) {
-    // Implement connection drag end
+    // Check if we have valid source and target
+    if (_activeDragBlockId != null && _activeConnectionId != null) {
+      // Call the connection callback
+      widget.onBlocksConnected?.call(
+        _activeDragBlockId!,
+        _activeConnectionId!,
+        targetBlockId,
+        targetConnectionId,
+      );
+      
+      // Log for debugging
+      debugPrint('Connected blocks: $_activeDragBlockId:$_activeConnectionId -> $targetBlockId:$targetConnectionId');
+      
+      // Notify workspace changed
+      widget.onWorkspaceChanged();
+    }
+    
+    // Reset drag state
+    setState(() {
+      _activeDragBlockId = null;
+      _activeConnectionId = null;
+      _currentDragPosition = null;
+    });
   }
 
   void _handleConnectionDragCancel() {
-    // Implement connection drag cancel
+    // Reset drag state
+    setState(() {
+      _activeDragBlockId = null;
+      _activeConnectionId = null;
+      _currentDragPosition = null;
+      
+      // Log for debugging
+      debugPrint('Connection drag cancelled');
+    });
   }
 
   Widget _buildPatternGuidance(BuildContext context) {

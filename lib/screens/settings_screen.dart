@@ -42,34 +42,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   Future<void> _loadSettings() async {
     try {
+      debugPrint('Loading settings...');
       _prefs = await SharedPreferences.getInstance();
-      final appStateProvider = Provider.of<AppStateProvider>(context, listen: false);
-      final audioService = Provider.of<AudioService>(context, listen: false);
+      
+      // Get providers safely
+      AppStateProvider? appStateProvider;
+      AudioService? audioService;
+      
+      try {
+        appStateProvider = Provider.of<AppStateProvider>(context, listen: false);
+        debugPrint('AppStateProvider loaded successfully');
+      } catch (e) {
+        debugPrint('Error loading AppStateProvider: $e');
+      }
+      
+      try {
+        audioService = Provider.of<AudioService>(context, listen: false);
+        debugPrint('AudioService loaded successfully');
+      } catch (e) {
+        debugPrint('Error loading AudioService: $e');
+      }
       
       setState(() {
-        // Audio settings
-        _soundEnabled = audioService.soundEnabled;
-        _musicEnabled = audioService.musicEnabled;
-        _soundVolume = audioService.soundVolume;
-        _musicVolume = audioService.musicVolume;
+        // Audio settings (with fallbacks)
+        _soundEnabled = audioService?.soundEnabled ?? true;
+        _musicEnabled = audioService?.musicEnabled ?? true;
+        _soundVolume = audioService?.soundVolume ?? 1.0;
+        _musicVolume = audioService?.musicVolume ?? 0.5;
         
         // Other settings
         _notificationsEnabled = _prefs.getBool('notifications_enabled') ?? true;
         
-        // Theme settings from AppStateProvider
-        _darkModeEnabled = appStateProvider.themeMode == ThemeMode.dark;
-        _highContrastEnabled = appStateProvider.highContrastEnabled;
-        _textScaleFactor = appStateProvider.textScaleFactor;
+        // Theme settings from AppStateProvider (with fallbacks)
+        _darkModeEnabled = appStateProvider?.themeMode == ThemeMode.dark;
+        _highContrastEnabled = appStateProvider?.highContrastEnabled ?? false;
+        _textScaleFactor = appStateProvider?.textScaleFactor ?? 1.0;
         
         // Difficulty settings
-        _defaultDifficulty = appStateProvider.currentDifficulty;
+        _defaultDifficulty = appStateProvider?.currentDifficulty ?? PatternDifficulty.basic;
         
         _isLoading = false;
+        debugPrint('Settings loaded successfully');
       });
-    } catch (e) {
-      print('Error loading settings: $e');
+    } catch (e, stackTrace) {
+      debugPrint('Error loading settings: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      // Load default settings on error
       setState(() {
         _isLoading = false;
+        // Use default values for all settings
+        _soundEnabled = true;
+        _musicEnabled = true;
+        _soundVolume = 1.0;
+        _musicVolume = 0.5;
+        _notificationsEnabled = true;
+        _darkModeEnabled = false;
+        _highContrastEnabled = false;
+        _textScaleFactor = 1.0;
+        _defaultDifficulty = PatternDifficulty.basic;
+      });
+      
+      // Show error message
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading settings. Default values applied.'),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _loadSettings,
+            ),
+          ),
+        );
       });
     }
   }
@@ -104,7 +148,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               image: AssetImage('assets/images/navigation/background_pattern.png'),
               fit: BoxFit.cover,
               opacity: 0.2,
+              onError: (exception, stackTrace) {
+                debugPrint('Error loading app bar background image: $exception');
+                return;
+              },
             ),
+            color: AppTheme.kenteGold.withOpacity(0.2), // Fallback color if image fails to load
           ),
         ),
       ),
@@ -120,7 +169,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Colors.white.withOpacity(0.95),
                     BlendMode.lighten,
                   ),
+                  onError: (exception, stackTrace) {
+                    debugPrint('Error loading background image: $exception');
+                    return;
+                  },
                 ),
+                color: Colors.grey[50], // Fallback color if image fails to load
               ),
               child: ListView(
                 padding: const EdgeInsets.all(16),

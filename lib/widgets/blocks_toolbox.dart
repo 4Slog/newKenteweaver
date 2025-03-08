@@ -11,6 +11,9 @@ class BlocksToolbox extends StatefulWidget {
   /// Callback when a block is selected
   final Function(Block) onBlockSelected;
 
+  /// Callback when a block is dragged
+  final Function(Block) onBlockDragged;
+
   /// Current difficulty level, used to filter available blocks
   final PatternDifficulty difficulty;
 
@@ -23,13 +26,22 @@ class BlocksToolbox extends StatefulWidget {
   /// Whether to use expandable categories
   final bool useExpandableCategories;
 
+  /// Whether to show labels
+  final bool showLabels;
+
+  /// Block scale
+  final double blockScale;
+
   const BlocksToolbox({
     super.key,
     required this.onBlockSelected,
+    required this.onBlockDragged,
     required this.difficulty,
     this.selectedCategoryNotifier,
     this.width = 300,
     this.useExpandableCategories = true,
+    this.showLabels = true,
+    this.blockScale = 1.0,
   });
 
   @override
@@ -499,9 +511,10 @@ class _BlocksToolboxState extends State<BlocksToolbox> with SingleTickerProvider
       margin: const EdgeInsets.only(bottom: 8),
       child: DraggableBlock(
         blockId: block.id,
-        onDragStarted: () {},
-        onDragEndSimple: () {},
-        onDoubleTap: () => widget.onBlockSelected(block),
+        onDragStarted: () => widget.onBlockDragged(block),
+        onTap: () => widget.onBlockSelected(block),
+        scale: widget.blockScale,
+        showLabel: widget.showLabels,
         child: ListTile(
           leading: _buildBlockIcon(block),
           title: Text(
@@ -518,8 +531,7 @@ class _BlocksToolboxState extends State<BlocksToolbox> with SingleTickerProvider
           )
               : null,
           dense: true,
-          onTap: () => widget.onBlockSelected(block),
-          trailing: const Icon(Icons.add, size: 18, color: Colors.grey),
+          trailing: const Icon(Icons.drag_indicator, size: 18, color: Colors.grey),
         ),
       ),
     );
