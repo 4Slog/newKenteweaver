@@ -106,7 +106,7 @@ class _AnimatedBlockConnectionState extends State<AnimatedBlockConnection>
         return AppTheme.kenteRed;
       case PatternDifficulty.advanced:
         return AppTheme.kenteGreen;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return AppTheme.kenteBlue;
     }
   }

@@ -29,6 +29,10 @@ class BlocksWorkspace extends StatefulWidget {
 }
 
 class _BlocksWorkspaceState extends State<BlocksWorkspace> {
+  String? _activeDragBlockId;
+  String? _activeConnectionId;
+  Offset? _currentDragPosition;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -57,27 +61,22 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
 
   Widget _buildEmptyState() {
     return DragTarget<String>(
-      onWillAccept: (data) {
-        // Accept any block ID
-        return data != null;
+      onWillAcceptWithDetails: (details) {
+        return details.data != null;
       },
-      onAccept: (blockId) {
-        // Get the block definition from the service
+      onAcceptWithDetails: (details) {
+        final blockId = details.data;
         final blockDefinitionService = BlockDefinitionService();
         final block = blockDefinitionService.getBlockById(blockId);
         
         if (block != null) {
-          // Add the block to the workspace
           widget.onBlockSelected(block);
-          
-          // Log for debugging
           debugPrint('Added block to workspace: $blockId');
         } else {
           debugPrint('Block not found: $blockId');
         }
       },
       builder: (context, candidateData, rejectedData) {
-        // Visual feedback when dragging over
         final isDraggingOver = candidateData.isNotEmpty;
         
         return Container(
@@ -87,7 +86,9 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
               color: isDraggingOver ? Colors.blue : Colors.transparent,
               width: 2,
             ),
-            color: isDraggingOver ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+            color: isDraggingOver 
+                ? Colors.blue.withValues(alpha: 26)
+                : Colors.transparent,
           ),
           child: Center(
             child: Column(
@@ -127,40 +128,64 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
   }
 
   Widget _buildBlocksList() {
-    return ListView.builder(
-      itemCount: widget.blockCollection.blocks.length,
-      itemBuilder: (context, index) {
-        final block = widget.blockCollection.blocks[index];
-        return ConnectedBlock(
-          block: block,
-          onDelete: widget.onDelete != null 
-              ? () => widget.onDelete!(block.id) 
-              : null,
-          onValueChanged: (value) => widget.onValueChanged != null
-              ? widget.onValueChanged!(block.id, value)
-              : {},
-          onConnectionDragStart: _handleConnectionDragStart,
-          onConnectionDragUpdate: _handleConnectionDragUpdate,
-          onConnectionDragEnd: _handleConnectionDragEnd,
-          onConnectionDragCancel: _handleConnectionDragCancel,
-          difficulty: widget.difficulty,
-        );
-      },
-      padding: const EdgeInsets.only(bottom: 100), // Space for floating suggestions
+    return Stack(
+      children: [
+        ListView.builder(
+          itemCount: widget.blockCollection.blocks.length,
+          itemBuilder: (context, index) {
+            final block = widget.blockCollection.blocks[index];
+            return ConnectedBlock(
+              block: block,
+              onDelete: widget.onDelete != null 
+                  ? () => widget.onDelete!(block.id) 
+                  : null,
+              onValueChanged: (value) {
+                if (widget.onValueChanged != null) {
+                  widget.onValueChanged!(block.id, value);
+                }
+              },
+              onConnectionDragStart: _handleConnectionDragStart,
+              onConnectionDragUpdate: _handleConnectionDragUpdate,
+              onConnectionDragEnd: _handleConnectionDragEnd,
+              onConnectionDragCancel: _handleConnectionDragCancel,
+              difficulty: widget.difficulty,
+              showPreview: _activeDragBlockId != null,
+            );
+          },
+          padding: const EdgeInsets.only(bottom: 100),
+        ),
+        if (_activeDragBlockId != null && _currentDragPosition != null)
+          Positioned(
+            left: _currentDragPosition!.dx,
+            top: _currentDragPosition!.dy,
+            child: _buildConnectionPreview(),
+          ),
+      ],
     );
   }
 
-  // Track active connection dragging
-  String? _activeDragBlockId;
-  String? _activeConnectionId;
-  Offset? _currentDragPosition;
+  Widget _buildConnectionPreview() {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: Colors.blue,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withValues(alpha: 77),
+            blurRadius: 5,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+    );
+  }
 
   void _handleConnectionDragStart(String blockId, String connectionId) {
     setState(() {
       _activeDragBlockId = blockId;
       _activeConnectionId = connectionId;
-      
-      // Log for debugging
       debugPrint('Started connection drag: $blockId, $connectionId');
     });
   }
@@ -172,9 +197,7 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
   }
 
   void _handleConnectionDragEnd(String targetBlockId, String targetConnectionId) {
-    // Check if we have valid source and target
     if (_activeDragBlockId != null && _activeConnectionId != null) {
-      // Call the connection callback
       widget.onBlocksConnected?.call(
         _activeDragBlockId!,
         _activeConnectionId!,
@@ -182,14 +205,10 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
         targetConnectionId,
       );
       
-      // Log for debugging
       debugPrint('Connected blocks: $_activeDragBlockId:$_activeConnectionId -> $targetBlockId:$targetConnectionId');
-      
-      // Notify workspace changed
       widget.onWorkspaceChanged();
     }
     
-    // Reset drag state
     setState(() {
       _activeDragBlockId = null;
       _activeConnectionId = null;
@@ -198,13 +217,10 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
   }
 
   void _handleConnectionDragCancel() {
-    // Reset drag state
     setState(() {
       _activeDragBlockId = null;
       _activeConnectionId = null;
       _currentDragPosition = null;
-      
-      // Log for debugging
       debugPrint('Connection drag cancelled');
     });
   }
@@ -259,29 +275,40 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
   }
 
   Widget _buildGuidanceStep(String title, bool completed, String description) {
-    return Row(
-      children: [
-        Icon(
-          completed ? Icons.check_circle : Icons.circle_outlined,
-          size: 16,
-          color: completed ? Colors.green : Colors.grey,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            '$title: $description',
-            style: TextStyle(
-              color: completed ? Colors.black87 : Colors.grey[600],
-              decoration: completed ? TextDecoration.lineThrough : null,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      decoration: BoxDecoration(
+        color: completed ? Colors.green.withOpacity(0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Icon(
+              completed ? Icons.check_circle : Icons.circle_outlined,
+              key: ValueKey(completed),
+              size: 16,
+              color: completed ? Colors.green : Colors.grey,
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$title: $description',
+              style: TextStyle(
+                color: completed ? Colors.black87 : Colors.grey[600],
+                decoration: completed ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildCulturalHint(BuildContext context) {
-    // Extract pattern type block
     final patternBlock = widget.blockCollection.blocks.firstWhere(
       (b) => b.type == BlockType.pattern,
       orElse: () => Block(
@@ -293,7 +320,7 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
         properties: {},
         connections: [],
         iconPath: '',
-        color: Colors.grey,
+        colorHex: '#808080', // Fixed: Added required colorHex parameter
       ),
     );
 

@@ -1,10 +1,124 @@
+import 'package:flutter/material.dart';
+import '../services/tutorial_service.dart';
+import '../theme/app_theme.dart';
+import '../models/tutorial_state.dart';
+
+class GridPainter extends CustomPainter {
+  final double opacity;
+  final double gridSize;
+  final Color lineColor;
+
+  GridPainter({
+    required this.opacity,
+    required this.gridSize,
+    required this.lineColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1.0;
+
+    // Draw vertical lines
+    for (double x = 0; x <= size.width; x += gridSize) {
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        paint,
+      );
+    }
+
+    // Draw horizontal lines
+    for (double y = 0; y <= size.height; y += gridSize) {
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(GridPainter oldDelegate) {
+    return opacity != oldDelegate.opacity ||
+           gridSize != oldDelegate.gridSize ||
+           lineColor != oldDelegate.lineColor;
+  }
+}
+
+class HighlightPainter extends CustomPainter {
+  final List<String> highlights;
+  final double intensity;
+  final Color color;
+
+  HighlightPainter({
+    required this.highlights,
+    required this.intensity,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withOpacity(0.2 * intensity)
+      ..style = PaintingStyle.fill;
+
+    // Draw highlight rectangles for each highlighted element
+    for (final highlight in highlights) {
+      // Get the bounds for the highlighted element
+      final bounds = _getHighlightBounds(highlight, size);
+      canvas.drawRect(bounds, paint);
+    }
+  }
+
+  Rect _getHighlightBounds(String highlight, Size size) {
+    // This is a simplified version - in a real app, you would calculate
+    // the actual bounds based on the element's position and size
+    switch (highlight) {
+      case 'workspace':
+        return Rect.fromLTWH(0, 0, size.width, size.height);
+      case 'toolbox':
+        return Rect.fromLTWH(0, 0, size.width, 80);
+      default:
+        return Rect.fromLTWH(0, 0, 80, 80);
+    }
+  }
+
+  @override
+  bool shouldRepaint(HighlightPainter oldDelegate) {
+    return highlights != oldDelegate.highlights ||
+           intensity != oldDelegate.intensity ||
+           color != oldDelegate.color;
+  }
+}
+
+class TutorialVisualController extends ChangeNotifier {
+  final ValueNotifier<double> workspaceOpacity = ValueNotifier(0.0);
+  final ValueNotifier<double> blockScale = ValueNotifier(1.0);
+  final ValueNotifier<double> highlightIntensity = ValueNotifier(0.0);
+  TutorialState currentState = TutorialState.initial;
+  double progress = 0.0;
+
+  void updateState(TutorialState newState) {
+    currentState = newState;
+    notifyListeners();
+  }
+
+  void updateProgress(double value) {
+    progress = value;
+    notifyListeners();
+  }
+}
+
 class EnhancedWorkspacePreview extends StatefulWidget {
   final TutorialVisualController controller;
   final bool allowInteraction;
   final List<String>? highlightedBlocks;
   final Function(String)? onBlockInteraction;
 
-  EnhancedWorkspacePreview({
+  const EnhancedWorkspacePreview({
+    super.key,
     required this.controller,
     this.allowInteraction = false,
     this.highlightedBlocks,
@@ -12,7 +126,7 @@ class EnhancedWorkspacePreview extends StatefulWidget {
   });
 
   @override
-  _EnhancedWorkspacePreviewState createState() => _EnhancedWorkspacePreviewState();
+  State<EnhancedWorkspacePreview> createState() => _EnhancedWorkspacePreviewState();
 }
 
 class _EnhancedWorkspacePreviewState extends State<EnhancedWorkspacePreview> {
@@ -186,7 +300,7 @@ class _EnhancedWorkspacePreviewState extends State<EnhancedWorkspacePreview> {
                       border: Border.all(
                         color: Theme.of(context).primaryColor,
                         width: 2,
-                        style: BorderStyle.dashed,
+                        style: BorderStyle.solid,
                       ),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -211,6 +325,28 @@ class _EnhancedWorkspacePreviewState extends State<EnhancedWorkspacePreview> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildInteractionOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.5),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock, color: Colors.white, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              'Follow the tutorial to interact with the workspace',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -256,20 +392,30 @@ class _EnhancedWorkspacePreviewState extends State<EnhancedWorkspacePreview> {
 
   String _getStateDescription(TutorialState state) {
     switch (state) {
-      case TutorialState.introduction:
+      case TutorialState.initial:
         return 'Getting Started';
+      case TutorialState.introduction:
+        return 'Introduction';
       case TutorialState.workspaceReveal:
         return 'Exploring the Workspace';
-      case TutorialState.blockIntroduction:
-        return 'Meeting the Blocks';
-      case TutorialState.firstBlock:
-        return 'First Steps';
-      case TutorialState.connecting:
-        return 'Making Connections';
-      case TutorialState.patternPreview:
-        return 'Pattern Preview';
-      case TutorialState.completion:
-        return 'Well Done!';
+      case TutorialState.blockDragging:
+        return 'Learning Block Dragging';
+      case TutorialState.patternSelection:
+        return 'Selecting Patterns';
+      case TutorialState.colorSelection:
+        return 'Choosing Colors';
+      case TutorialState.loopUsage:
+        return 'Using Loops';
+      case TutorialState.rowColumns:
+        return 'Working with Rows and Columns';
+      case TutorialState.culturalContext:
+        return 'Understanding Cultural Context';
+      case TutorialState.challenge:
+        return 'Taking the Challenge';
+      case TutorialState.next:
+        return 'Next Step';
+      case TutorialState.complete:
+        return 'Tutorial Complete';
     }
   }
 } 

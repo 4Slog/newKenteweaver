@@ -27,6 +27,7 @@ class _DebugOverlayState extends State<DebugOverlay> {
     if (!widget.enabled) return widget.child;
 
     return Stack(
+      textDirection: TextDirection.ltr, // Add explicit text direction
       children: [
         widget.child,
         if (_showOverlay)

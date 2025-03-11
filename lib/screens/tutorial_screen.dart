@@ -66,7 +66,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
           ),
         ],
         iconPath: 'assets/images/blocks/checker_pattern.png',
-        color: Colors.blue,
+        colorHex: '#3498db',
       ),
       Block(
         id: 'color_block',
@@ -84,7 +84,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
           ),
         ],
         iconPath: 'assets/images/blocks/shuttle_gold.png',
-        color: AppTheme.kenteGold,
+        colorHex: '#${AppTheme.kenteGold.value.toRadixString(16).padLeft(8, '0').substring(2)}',
       ),
       Block(
         id: 'loop_block',
@@ -114,7 +114,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
           ),
         ],
         iconPath: 'assets/images/blocks/loop_icon.png',
-        color: Colors.green,
+        colorHex: '#2ecc71',
       ),
     ];
     
@@ -264,7 +264,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/patterns/background_pattern.png'),
+            image: AssetImage('assets/images/navigation/background_pattern.png'),
             fit: BoxFit.cover,
             opacity: 0.1,
           ),

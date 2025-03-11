@@ -771,7 +771,7 @@ class PatternEngine {
           suggestions.add('Use more color combinations for advanced patterns');
         }
         break;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         if (complexity < 0.6 || colorVariety < 0.6) {
           suggestions.add('Master patterns typically have high complexity and color variety');
         }

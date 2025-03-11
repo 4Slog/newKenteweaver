@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import '../services/interactive_story_service.dart';
+import '../services/story_service.dart';
 import '../models/pattern_difficulty.dart';
+import '../models/story_model.dart';
 import '../theme/app_theme.dart';
 
 class InteractiveStoryView extends StatefulWidget {
@@ -29,9 +30,9 @@ class InteractiveStoryView extends StatefulWidget {
 }
 
 class _InteractiveStoryViewState extends State<InteractiveStoryView> with SingleTickerProviderStateMixin {
-  final InteractiveStoryService _storyService = InteractiveStoryService();
-  late Future<Map<String, dynamic>> _storyFuture;
-  Map<String, dynamic>? _currentStory;
+  final StoryService _storyService = StoryService();
+  late Future<StoryNode> _storyFuture;
+  StoryNode? _currentStory;
   Map<String, dynamic>? _previousChoices;
   late AnimationController _animationController;
   bool _showingChoices = false;
@@ -47,19 +48,14 @@ class _InteractiveStoryViewState extends State<InteractiveStoryView> with Single
   }
 
   void _loadStory() {
-    _storyFuture = _storyService.generateInteractiveStory(
-      patternType: widget.patternType,
-      colors: widget.colors,
-      difficulty: widget.difficulty,
-      preferredLanguage: widget.preferredLanguage,
-      userProgress: widget.userProgress,
-      previousChoices: _previousChoices,
+    _storyFuture = _storyService.getNode(
+      widget.patternType,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
+    return FutureBuilder<StoryNode>(
       future: _storyFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -73,8 +69,7 @@ class _InteractiveStoryViewState extends State<InteractiveStoryView> with Single
         }
 
         _currentStory = snapshot.data;
-        final storyNode = _currentStory?['story_node'] as StoryNode?;
-        if (storyNode == null) {
+        if (_currentStory == null) {
           return const Center(child: Text('Story not available'));
         }
 
@@ -83,13 +78,13 @@ class _InteractiveStoryViewState extends State<InteractiveStoryView> with Single
             Expanded(
               child: Stack(
                 children: [
-                  _buildStoryContent(storyNode),
+                  _buildStoryContent(_currentStory!),
                   _buildInteractiveElements(_currentStory!),
                 ],
               ),
             ),
-            if (_showingChoices)
-              _buildChoices(storyNode.choices),
+            if (_showingChoices && (_currentStory?.choices?.isNotEmpty ?? false))
+              _buildChoices(_currentStory!.choices ?? []),
           ],
         );
       },
@@ -114,7 +109,7 @@ class _InteractiveStoryViewState extends State<InteractiveStoryView> with Single
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: storyNode.content.map((content) {
+                children: (storyNode.contentBlocks ?? []).map((content) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: _buildContentBlock(content),
@@ -128,17 +123,16 @@ class _InteractiveStoryViewState extends State<InteractiveStoryView> with Single
     );
   }
 
-  Widget _buildContentBlock(Map<String, String> content) {
-    final type = content['type'];
-    final text = content['text'] ?? '';
+  Widget _buildContentBlock(ContentBlock content) {
+    final text = content.text;
 
-    switch (type) {
-      case 'scene':
+    switch (content.type) {
+      case ContentType.narration:
         return Text(
           text,
           style: Theme.of(context).textTheme.bodyLarge,
         );
-      case 'dialogue':
+      case ContentType.dialogue:
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -153,7 +147,7 @@ class _InteractiveStoryViewState extends State<InteractiveStoryView> with Single
             ),
           ),
         );
-      case 'action':
+      case ContentType.description:
         return Text(
           text,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -165,152 +159,53 @@ class _InteractiveStoryViewState extends State<InteractiveStoryView> with Single
     }
   }
 
-  Widget _buildInteractiveElements(Map<String, dynamic> story) {
-    final elements = story['interactive_elements'] as Map<String, dynamic>?;
-    if (elements == null) return const SizedBox.shrink();
+  Widget _buildInteractiveElements(StoryNode storyNode) {
+    if (storyNode.challenge == null) return const SizedBox.shrink();
 
     return Stack(
       children: [
-        // Animations
-        if (elements['animations'] != null)
-          ..._buildAnimations(elements['animations'] as Map<String, String>),
-
-        // Clickable elements
-        if (elements['clickable_elements'] != null)
-          ..._buildClickableElements(
-            elements['clickable_elements'] as List<Map<String, dynamic>>,
-          ),
+        // Challenge preview
+        if (storyNode.challenge != null)
+          _buildChallengePreview(storyNode.challenge!),
       ],
     );
   }
 
-  List<Widget> _buildAnimations(Map<String, String> animations) {
-    return animations.entries.map((entry) {
-      return Positioned(
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        child: Lottie.asset(
-          entry.value,
-          controller: _animationController,
-          onLoaded: (composition) {
-            _animationController
-              ..duration = composition.duration
-              ..forward();
-          },
-        ),
-      );
-    }).toList();
-  }
-
-  List<Widget> _buildClickableElements(List<Map<String, dynamic>> elements) {
-    return elements.map((element) {
-      final position = element['position'] as Map<String, dynamic>;
-      return Positioned(
-        left: MediaQuery.of(context).size.width * (position['x'] as double),
-        top: MediaQuery.of(context).size.height * (position['y'] as double),
-        child: GestureDetector(
-          onTap: () => _handleElementClick(element),
-          child: Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Icon(
-                _getElementIcon(element['type'] as String),
-                size: 32,
-                color: Colors.white.withOpacity(0.8),
-              ),
-            ),
-          ),
-        ),
-      );
-    }).toList();
-  }
-
-  IconData _getElementIcon(String type) {
-    switch (type) {
-      case 'code_preview':
-        return Icons.code;
-      case 'pattern_preview':
-        return Icons.palette;
-      default:
-        return Icons.touch_app;
-    }
-  }
-
-  void _handleElementClick(Map<String, dynamic> element) {
-    // Handle interactive element clicks
-    switch (element['type']) {
-      case 'code_preview':
-        _showCodePreview();
-        break;
-      case 'pattern_preview':
-        _showPatternPreview();
-        break;
-    }
-  }
-
-  void _showCodePreview() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Code Preview'),
-        content: Container(
-          width: double.maxFinite,
-          height: 300,
+  Widget _buildChallengePreview(Challenge challenge) {
+    return Positioned(
+      right: 16,
+      bottom: 16,
+      child: GestureDetector(
+        onTap: () => _showCodingChallenge(challenge),
+        child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey[900],
+            color: Colors.white.withOpacity(0.9),
             borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                spreadRadius: 1,
+              ),
+            ],
           ),
-          child: const Text(
-            '// Code preview will be shown here\n'
-            'function generatePattern() {\n'
-            '  // Pattern generation code\n'
-            '}',
-            style: TextStyle(
-              color: Colors.green,
-              fontFamily: 'monospace',
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                challenge.title,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                challenge.description,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showPatternPreview() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pattern Preview'),
-        content: Container(
-          width: 300,
-          height: 300,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Center(
-            child: Text('Pattern preview will be shown here'),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
@@ -361,18 +256,32 @@ class _InteractiveStoryViewState extends State<InteractiveStoryView> with Single
     widget.onChoiceSelected(choice);
 
     if (choice.codingChallenge != null) {
-      _showCodingChallenge(choice.codingChallenge!);
+      final challenge = Challenge(
+        id: choice.codingChallenge!['id'] as String? ?? 'challenge_${choice.id}',
+        type: ChallengeType.values.firstWhere(
+          (t) => t.toString() == 'ChallengeType.${choice.codingChallenge!['type'] ?? 'patternCreation'}',
+          orElse: () => ChallengeType.patternCreation,
+        ),
+        title: choice.codingChallenge!['title'] as String? ?? 'Coding Challenge',
+        description: choice.codingChallenge!['description'] as String? ?? '',
+        hints: List<String>.from(choice.codingChallenge!['hints'] as List? ?? []),
+        difficulty: PatternDifficulty.values.firstWhere(
+          (d) => d.toString() == 'PatternDifficulty.${choice.codingChallenge!['difficulty'] ?? 'basic'}',
+          orElse: () => PatternDifficulty.basic,
+        ),
+      );
+      _showCodingChallenge(challenge);
     } else {
       _loadStory();
     }
   }
 
-  void _showCodingChallenge(Map<String, dynamic> challenge) {
+  void _showCodingChallenge(Challenge challenge) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text(challenge['description'] as String),
+        title: Text(challenge.title),
         content: Container(
           width: double.maxFinite,
           height: 400,
@@ -385,7 +294,7 @@ class _InteractiveStoryViewState extends State<InteractiveStoryView> with Single
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
-              ...(challenge['hints'] as List<String>).map(
+              ...challenge.hints.map(
                 (hint) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(

@@ -112,7 +112,7 @@ class _ChallengeScreenState extends State<ChallengeScreen> with SingleTickerProv
         'title': 'Cultural Masterpiece',
         'description': 'Create a pattern with deep cultural significance that combines all your skills.',
         'objective': 'Demonstrate mastery of patterns, colors, and their cultural meanings',
-        'difficulty': PatternDifficulty.master,
+        'difficulty': PatternDifficulty.expert,
         'timeLimit': 12,
         'requiredBlocks': ['checker_pattern', 'zigzag_pattern', 'loop_block', 'row_block'],
         'imageAsset': 'assets/images/blocks/square_pattern.png',
@@ -469,7 +469,7 @@ class _ChallengeScreenState extends State<ChallengeScreen> with SingleTickerProv
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: const AssetImage('assets/images/patterns/background_pattern.png'),
+            image: const AssetImage('assets/images/navigation/background_pattern.png'),
             fit: BoxFit.cover,
             opacity: 0.1,
           ),
@@ -616,7 +616,7 @@ class _ChallengeScreenState extends State<ChallengeScreen> with SingleTickerProv
 
   Widget _buildChallengeCard(Map<String, dynamic> challenge) {
     final difficulty = challenge['difficulty'] as PatternDifficulty;
-    final difficultyColor = AppTheme.getDifficultyColor(difficulty, context);
+    final difficultyColor = AppTheme.getDifficultyColor(context, difficulty.toString().split('.').last);
 
     return Card(
       elevation: 2,

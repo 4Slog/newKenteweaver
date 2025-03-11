@@ -1,14 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../models/pattern_difficulty.dart';
+import 'gemini_service.dart';
+import 'logging_service.dart';
+import 'storage_service.dart';
 
 /// Service for providing cultural context information about Kente patterns, colors, and symbols
 class CulturalContextService extends ChangeNotifier {
-  static final CulturalContextService _instance = CulturalContextService._internal();
-  factory CulturalContextService() => _instance;
-  CulturalContextService._internal();
-
+  final GeminiService _geminiService;
+  final LoggingService _loggingService;
+  final StorageService _storageService;
+  
   /// Map of pattern IDs to cultural information
   Map<String, PatternCulturalInfo> _patternInfo = {};
   
@@ -23,6 +26,32 @@ class CulturalContextService extends ChangeNotifier {
   
   /// Whether the service is initialized
   bool _isInitialized = false;
+  
+  // Singleton pattern
+  static CulturalContextService? _instance;
+  
+  /// Private constructor to enforce singleton pattern
+  CulturalContextService._({
+    required GeminiService geminiService,
+    required LoggingService loggingService,
+    required StorageService storageService,
+  }) : _geminiService = geminiService,
+       _loggingService = loggingService,
+       _storageService = storageService;
+  
+  /// Factory constructor to get the singleton instance
+  factory CulturalContextService({
+    required GeminiService geminiService,
+    required LoggingService loggingService,
+    required StorageService storageService,
+  }) {
+    _instance ??= CulturalContextService._(
+      geminiService: geminiService,
+      loggingService: loggingService,
+      storageService: storageService,
+    );
+    return _instance!;
+  }
   
   /// Get all pattern cultural information
   Map<String, PatternCulturalInfo> get patternInfo => 
@@ -44,17 +73,20 @@ class CulturalContextService extends ChangeNotifier {
   Future<void> initialize() async {
     if (_isInitialized) return;
     
+    _loggingService.info('Initializing CulturalContextService', tag: 'CulturalContextService');
+    
     // Load cultural information from assets
     await _loadCulturalData();
     
     _isInitialized = true;
+    _loggingService.info('CulturalContextService initialized successfully', tag: 'CulturalContextService');
   }
   
   /// Load cultural data from assets
   Future<void> _loadCulturalData() async {
     try {
       // Load pattern information
-      final patternJson = await rootBundle.loadString('assets/documents/patterns_cultural_info.json');
+      final patternJson = await rootBundle.loadString('assets/data/patterns_cultural_info.json');
       final patternData = jsonDecode(patternJson) as Map<String, dynamic>;
       
       patternData.forEach((key, value) {
@@ -64,7 +96,7 @@ class CulturalContextService extends ChangeNotifier {
       });
       
       // Load color information
-      final colorJson = await rootBundle.loadString('assets/documents/colors_cultural_info.json');
+      final colorJson = await rootBundle.loadString('assets/data/colors_cultural_info.json');
       final colorData = jsonDecode(colorJson) as Map<String, dynamic>;
       
       colorData.forEach((key, value) {
@@ -74,7 +106,7 @@ class CulturalContextService extends ChangeNotifier {
       });
       
       // Load symbol information
-      final symbolJson = await rootBundle.loadString('assets/documents/symbols_cultural_info.json');
+      final symbolJson = await rootBundle.loadString('assets/data/symbols_cultural_info.json');
       final symbolData = jsonDecode(symbolJson) as Map<String, dynamic>;
       
       symbolData.forEach((key, value) {
@@ -84,7 +116,7 @@ class CulturalContextService extends ChangeNotifier {
       });
       
       // Load regional information
-      final regionalJson = await rootBundle.loadString('assets/documents/regional_info.json');
+      final regionalJson = await rootBundle.loadString('assets/data/regional_info.json');
       final regionalData = jsonDecode(regionalJson) as Map<String, dynamic>;
       
       regionalData.forEach((key, value) {
@@ -92,8 +124,10 @@ class CulturalContextService extends ChangeNotifier {
           _regionalInfo[key] = RegionalInfo.fromJson(value);
         }
       });
+      
+      _loggingService.info('Cultural data loaded successfully', tag: 'CulturalContextService');
     } catch (e) {
-      debugPrint('Error loading cultural data: $e');
+      _loggingService.error('Error loading cultural data: $e', tag: 'CulturalContextService');
       // If loading from assets fails, initialize with default data
       _initializeDefaultData();
     }
@@ -101,6 +135,8 @@ class CulturalContextService extends ChangeNotifier {
   
   /// Initialize with default cultural data
   void _initializeDefaultData() {
+    _loggingService.info('Initializing default cultural data', tag: 'CulturalContextService');
+    
     // Initialize pattern information
     _patternInfo = {
       'checker_pattern': PatternCulturalInfo(
@@ -306,75 +342,154 @@ class CulturalContextService extends ChangeNotifier {
   }
   
   /// Get cultural information for a specific pattern
-  PatternCulturalInfo? getPatternInfo(String patternId) {
-    return _patternInfo[patternId.toLowerCase()];
+  /// 
+  /// If the pattern is not found in the local database, it will be generated using the Gemini API.
+  Future<PatternCulturalInfo?> getPatternInfo(String patternId, {String language = 'en'}) async {
+    // Check if pattern exists in local database
+    final localInfo = _patternInfo[patternId.toLowerCase()];
+    if (localInfo != null) {
+      return localInfo;
+    }
+    
+    // If not found locally, generate using Gemini
+    try {
+      final contextData = await _geminiService.generateCulturalContext(
+        patternId: patternId,
+        language: language,
+        includeColorMeanings: true,
+        includeHistoricalContext: true,
+      );
+      
+      // Convert to PatternCulturalInfo
+      final patternName = patternId
+          .split('_')
+          .map((word) => word.isEmpty ? '' : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}')
+          .join(' ');
+      
+      final patternInfo = PatternCulturalInfo(
+        id: patternId,
+        name: contextData['title'] ?? patternName,
+        englishName: patternName,
+        description: contextData['description'] ?? 'A traditional Kente pattern.',
+        culturalSignificance: contextData['culturalSignificance'] ?? contextData['description'] ?? 'This pattern has cultural significance in Kente weaving.',
+        region: 'Ashanti', // Default
+        difficulty: 'intermediate', // Default
+        historicalContext: contextData['historicalContext'] ?? 'This pattern has historical significance in Kente weaving.',
+        traditionalUses: contextData['traditionalUse'] != null ? [contextData['traditionalUse']] : ['Traditional ceremonies'],
+        relatedPatterns: [],
+      );
+      
+      // Cache the result
+      _patternInfo[patternId.toLowerCase()] = patternInfo;
+      
+      return patternInfo;
+    } catch (e) {
+      _loggingService.error('Error generating pattern info: $e', tag: 'CulturalContextService');
+      return null;
+    }
   }
   
   /// Get cultural information for a specific color
-  ColorCulturalInfo? getColorInfo(String colorId) {
-    return _colorInfo[colorId.toLowerCase()];
+  Future<ColorCulturalInfo?> getColorInfo(String colorId) {
+    return Future.value(_colorInfo[colorId.toLowerCase()]);
   }
   
   /// Get cultural information for a specific symbol
-  SymbolCulturalInfo? getSymbolInfo(String symbolId) {
-    return _symbolInfo[symbolId.toLowerCase()];
+  Future<SymbolCulturalInfo?> getSymbolInfo(String symbolId) {
+    return Future.value(_symbolInfo[symbolId.toLowerCase()]);
   }
   
   /// Get cultural information for a specific region
-  RegionalInfo? getRegionalInfo(String regionId) {
-    return _regionalInfo[regionId.toLowerCase()];
+  Future<RegionalInfo?> getRegionalInfo(String regionId) {
+    return Future.value(_regionalInfo[regionId.toLowerCase()]);
   }
   
   /// Get cultural information for a pattern combination
-  String getCombinationMeaning(List<String> patternIds) {
+  Future<String> getCombinationMeaning(List<String> patternIds, {String language = 'en'}) async {
     if (patternIds.isEmpty) return '';
     
     // If only one pattern, return its significance
     if (patternIds.length == 1) {
-      final pattern = getPatternInfo(patternIds.first);
+      final pattern = await getPatternInfo(patternIds.first, language: language);
       return pattern?.culturalSignificance ?? '';
     }
     
     // For multiple patterns, generate a combined meaning
-    final patterns = patternIds
-        .map((id) => getPatternInfo(id))
-        .where((p) => p != null)
-        .toList();
+    final patterns = await Future.wait(
+      patternIds.map((id) => getPatternInfo(id, language: language))
+    );
     
-    if (patterns.isEmpty) return '';
+    final validPatterns = patterns.where((p) => p != null).cast<PatternCulturalInfo>().toList();
     
-    // Generate a combined meaning based on the patterns
-    return 'This combination of ${patterns.map((p) => p!.name).join(', ')} '
-        'creates a rich tapestry of meaning. '
-        '${patterns.map((p) => p!.culturalSignificance).join(' ')}';
+    if (validPatterns.isEmpty) return '';
+    
+    // Try to generate a combined meaning using Gemini
+    try {
+      final prompt = '''
+      Analyze this combination of Kente patterns in $language:
+      ${validPatterns.map((p) => '- ${p.name}: ${p.description}').join('\n')}
+      
+      Provide a cultural interpretation of what this combination might symbolize or represent.
+      Focus on how these patterns might work together to create a unified meaning.
+      Keep the explanation appropriate for children aged 7-12.
+      ''';
+      
+      final response = await _geminiService.generateText(prompt, language: language);
+      return response;
+    } catch (e) {
+      _loggingService.error('Error generating combination meaning: $e', tag: 'CulturalContextService');
+      
+      // Generate a combined meaning based on the patterns
+      return 'This combination of ${validPatterns.map((p) => p.name).join(', ')} '
+          'creates a rich tapestry of meaning. '
+          '${validPatterns.map((p) => p.culturalSignificance).join(' ')}';
+    }
   }
   
   /// Get cultural information for a color combination
-  String getColorCombinationMeaning(List<String> colorIds) {
+  Future<String> getColorCombinationMeaning(List<String> colorIds, {String language = 'en'}) async {
     if (colorIds.isEmpty) return '';
     
     // If only one color, return its meaning
     if (colorIds.length == 1) {
-      final color = getColorInfo(colorIds.first);
+      final color = _colorInfo[colorIds.first.toLowerCase()];
       return color?.culturalMeaning ?? '';
     }
     
-    // For multiple colors, generate a combined meaning
+    // For multiple colors, get the info for each
     final colors = colorIds
-        .map((id) => getColorInfo(id))
+        .map((id) => _colorInfo[id.toLowerCase()])
         .where((c) => c != null)
+        .cast<ColorCulturalInfo>()
         .toList();
     
     if (colors.isEmpty) return '';
     
-    // Generate a combined meaning based on the colors
-    return 'This combination of ${colors.map((c) => c!.name).join(', ')} '
-        'creates a powerful visual statement. '
-        '${colors.map((c) => c!.culturalMeaning).join(' ')}';
+    // Try to generate a combined meaning using Gemini
+    try {
+      final prompt = '''
+      Analyze this combination of colors in Kente weaving in $language:
+      ${colors.map((c) => '- ${c.englishName} (${c.name}): ${c.culturalMeaning}').join('\n')}
+      
+      Provide a cultural interpretation of what this color combination might symbolize or represent.
+      Focus on how these colors might work together to create a unified meaning.
+      Keep the explanation appropriate for children aged 7-12.
+      ''';
+      
+      final response = await _geminiService.generateText(prompt, language: language);
+      return response;
+    } catch (e) {
+      _loggingService.error('Error generating color combination meaning: $e', tag: 'CulturalContextService');
+      
+      // Generate a combined meaning based on the colors
+      return 'This combination of ${colors.map((c) => c.name).join(', ')} '
+          'creates a powerful visual statement. '
+          '${colors.map((c) => c.culturalMeaning).join(' ')}';
+    }
   }
   
   /// Get educational fact about Kente weaving
-  String getRandomEducationalFact() {
+  Future<String> getRandomEducationalFact({String language = 'en'}) async {
     final facts = [
       'Kente cloth was originally worn only by royalty and spiritual leaders for special occasions.',
       'Traditional Kente is woven on a horizontal loom in narrow strips that are later sewn together.',
@@ -389,11 +504,33 @@ class CulturalContextService extends ChangeNotifier {
     ];
     
     // Return a random fact
-    return facts[DateTime.now().millisecondsSinceEpoch % facts.length];
+    final randomFact = facts[DateTime.now().millisecondsSinceEpoch % facts.length];
+    
+    // If language is English, return directly
+    if (language == 'en') {
+      return randomFact;
+    }
+    
+    // Otherwise, translate using Gemini
+    try {
+      final prompt = '''
+      Translate this educational fact about Kente weaving to $language:
+      
+      $randomFact
+      
+      Keep the translation appropriate for children aged 7-12.
+      ''';
+      
+      final response = await _geminiService.generateText(prompt, language: language);
+      return response;
+    } catch (e) {
+      _loggingService.error('Error translating educational fact: $e', tag: 'CulturalContextService');
+      return randomFact; // Fallback to English
+    }
   }
   
   /// Get a cultural proverb related to a concept
-  String getProverbForConcept(String concept) {
+  Future<String> getProverbForConcept(String concept, {String language = 'en'}) async {
     final proverbs = {
       'learning': 'Knowledge is like a garden; if it is not cultivated, it cannot be harvested.',
       'patience': 'No matter how long the night, the day is sure to come.',
@@ -407,8 +544,31 @@ class CulturalContextService extends ChangeNotifier {
       'tradition': 'When you follow in the path of your father, you learn to walk like him.',
     };
     
-    return proverbs[concept.toLowerCase()] ?? 
+    // Get the proverb for the concept
+    final proverb = proverbs[concept.toLowerCase()] ?? 
         'A wise person adapts like the Nkyinkyin pattern, navigating life\'s twists and turns.';
+    
+    // If language is English, return directly
+    if (language == 'en') {
+      return proverb;
+    }
+    
+    // Otherwise, translate using Gemini
+    try {
+      final prompt = '''
+      Translate this African proverb to $language:
+      
+      $proverb
+      
+      Keep the translation appropriate for children aged 7-12.
+      ''';
+      
+      final response = await _geminiService.generateText(prompt, language: language);
+      return response;
+    } catch (e) {
+      _loggingService.error('Error translating proverb: $e', tag: 'CulturalContextService');
+      return proverb; // Fallback to English
+    }
   }
 }
 
@@ -483,219 +643,4 @@ class PatternCulturalInfo {
       culturalSignificance: json['culturalSignificance'] as String,
       region: json['region'] as String,
       difficulty: json['difficulty'] as String,
-      historicalContext: json['historicalContext'] as String,
-      traditionalUses: (json['traditionalUses'] as List<dynamic>).cast<String>(),
-      relatedPatterns: (json['relatedPatterns'] as List<dynamic>).cast<String>(),
-    );
-  }
-}
-
-/// Cultural information about a color used in Kente
-class ColorCulturalInfo {
-  /// Color identifier
-  final String id;
-  
-  /// Traditional name in Akan language
-  final String name;
-  
-  /// English name of the color
-  final String englishName;
-  
-  /// Hex code for the color
-  final String hexCode;
-  
-  /// Cultural meaning and symbolism
-  final String culturalMeaning;
-  
-  /// Traditional sources of the dye
-  final List<String> traditionalSources;
-  
-  /// Traditional uses of the color
-  final List<String> traditionalUses;
-  
-  /// Complementary colors in Kente tradition
-  final List<String> complementaryColors;
-
-  const ColorCulturalInfo({
-    required this.id,
-    required this.name,
-    required this.englishName,
-    required this.hexCode,
-    required this.culturalMeaning,
-    required this.traditionalSources,
-    required this.traditionalUses,
-    required this.complementaryColors,
-  });
-
-  /// Convert to JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'englishName': englishName,
-      'hexCode': hexCode,
-      'culturalMeaning': culturalMeaning,
-      'traditionalSources': traditionalSources,
-      'traditionalUses': traditionalUses,
-      'complementaryColors': complementaryColors,
-    };
-  }
-
-  /// Create from JSON
-  factory ColorCulturalInfo.fromJson(Map<String, dynamic> json) {
-    return ColorCulturalInfo(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      englishName: json['englishName'] as String,
-      hexCode: json['hexCode'] as String,
-      culturalMeaning: json['culturalMeaning'] as String,
-      traditionalSources: (json['traditionalSources'] as List<dynamic>).cast<String>(),
-      traditionalUses: (json['traditionalUses'] as List<dynamic>).cast<String>(),
-      complementaryColors: (json['complementaryColors'] as List<dynamic>).cast<String>(),
-    );
-  }
-}
-
-/// Cultural information about a symbol used in Kente and Adinkra
-class SymbolCulturalInfo {
-  /// Symbol identifier
-  final String id;
-  
-  /// Traditional name in Akan language
-  final String name;
-  
-  /// English translation of the name
-  final String englishName;
-  
-  /// Brief description of the symbol
-  final String description;
-  
-  /// Cultural significance and meaning
-  final String culturalSignificance;
-  
-  /// Region of origin
-  final String region;
-  
-  /// Category (e.g., wisdom, leadership, values)
-  final String category;
-  
-  /// Historical context and origin
-  final String historicalContext;
-  
-  /// Related symbols
-  final List<String> relatedSymbols;
-
-  const SymbolCulturalInfo({
-    required this.id,
-    required this.name,
-    required this.englishName,
-    required this.description,
-    required this.culturalSignificance,
-    required this.region,
-    required this.category,
-    required this.historicalContext,
-    required this.relatedSymbols,
-  });
-
-  /// Convert to JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'englishName': englishName,
-      'description': description,
-      'culturalSignificance': culturalSignificance,
-      'region': region,
-      'category': category,
-      'historicalContext': historicalContext,
-      'relatedSymbols': relatedSymbols,
-    };
-  }
-
-  /// Create from JSON
-  factory SymbolCulturalInfo.fromJson(Map<String, dynamic> json) {
-    return SymbolCulturalInfo(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      englishName: json['englishName'] as String,
-      description: json['description'] as String,
-      culturalSignificance: json['culturalSignificance'] as String,
-      region: json['region'] as String,
-      category: json['category'] as String,
-      historicalContext: json['historicalContext'] as String,
-      relatedSymbols: (json['relatedSymbols'] as List<dynamic>).cast<String>(),
-    );
-  }
-}
-
-/// Cultural information about a region with Kente traditions
-class RegionalInfo {
-  /// Region identifier
-  final String id;
-  
-  /// Traditional name in local language
-  final String name;
-  
-  /// English name of the region
-  final String englishName;
-  
-  /// Brief description of the region
-  final String description;
-  
-  /// Cultural significance in Kente tradition
-  final String culturalSignificance;
-  
-  /// Traditional patterns from this region
-  final List<String> traditionalPatterns;
-  
-  /// Traditional colors used in this region
-  final List<String> traditionalColors;
-  
-  /// Historical context of the region
-  final String historicalContext;
-  
-  /// Notable locations in the region
-  final List<String> notableLocations;
-
-  const RegionalInfo({
-    required this.id,
-    required this.name,
-    required this.englishName,
-    required this.description,
-    required this.culturalSignificance,
-    required this.traditionalPatterns,
-    required this.traditionalColors,
-    required this.historicalContext,
-    required this.notableLocations,
-  });
-
-  /// Convert to JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'englishName': englishName,
-      'description': description,
-      'culturalSignificance': culturalSignificance,
-      'traditionalPatterns': traditionalPatterns,
-      'traditionalColors': traditionalColors,
-      'historicalContext': historicalContext,
-      'notableLocations': notableLocations,
-    };
-  }
-
-  /// Create from JSON
-  factory RegionalInfo.fromJson(Map<String, dynamic> json) {
-    return RegionalInfo(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      englishName: json['englishName'] as String,
-      description: json['description'] as String,
-      culturalSignificance: json['culturalSignificance'] as String,
-      traditionalPatterns: (json['traditionalPatterns'] as List<dynamic>).cast<String>(),
-      traditionalColors: (json['traditionalColors'] as List<dynamic>).cast<String>(),
-      historicalContext: json['historicalContext'] as String,
-      notableLocations: (json['notableLocations'] as List<dynamic>).cast<String>(),
-    );
-  }
-}
+      histor

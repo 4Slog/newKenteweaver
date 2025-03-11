@@ -93,7 +93,7 @@ class AppStateProvider extends ChangeNotifier {
     await Future.delayed(const Duration(milliseconds: 500)); // Simulated delay
     
     // Update difficulty if needed
-    if (score > 0.8 && _currentDifficulty != PatternDifficulty.master) {
+    if (score > 0.8 && _currentDifficulty != PatternDifficulty.expert) {
       final difficulties = PatternDifficulty.values;
       final currentIndex = difficulties.indexOf(_currentDifficulty);
       if (currentIndex < difficulties.length - 1) {

@@ -1,17 +1,47 @@
+import 'package:flutter/material.dart';
+import '../services/tts_service.dart';
+
+class TutorialVisualController extends ChangeNotifier {
+  final ValueNotifier<TutorialState> currentState = ValueNotifier(TutorialState.initial);
+  final ValueNotifier<bool> isLoading = ValueNotifier(false);
+  final ValueNotifier<String> statusMessage = ValueNotifier('');
+
+  void updateState(TutorialState newState) {
+    currentState.value = newState;
+    notifyListeners();
+  }
+
+  void setLoading(bool loading, [String message = '']) {
+    isLoading.value = loading;
+    statusMessage.value = message;
+    notifyListeners();
+  }
+
+  void updateProgress(double progress, {Curve curve = Curves.easeInOut}) {
+    // Implementation for progress updates
+  }
+
+  void showHint(String hint, {Curve curve = Curves.easeInOut}) {
+    // Implementation for showing hints
+  }
+
+  void hideHint({Curve curve = Curves.easeInOut}) {
+    // Implementation for hiding hints
+  }
+}
+
 class TutorialInteractiveElements extends StatefulWidget {
   final TutorialVisualController controller;
-  final NarrationService narrationService;
-  final Function(String) onInteraction;
+  final TTSService ttsService;
 
-  TutorialInteractiveElements({
+  const TutorialInteractiveElements({
+    super.key,
     required this.controller,
-    required this.narrationService,
-    required this.onInteraction,
+    required this.ttsService,
   });
 
   @override
-  _TutorialInteractiveElementsState createState() =>
-      _TutorialInteractiveElementsState();
+  State<TutorialInteractiveElements> createState() => _TutorialInteractiveElementsState();
 }
 
 class _TutorialInteractiveElementsState extends State<TutorialInteractiveElements> {
@@ -19,17 +49,9 @@ class _TutorialInteractiveElementsState extends State<TutorialInteractiveElement
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Navigation controls
         _buildNavigationControls(),
-        
-        // Help button
-        _buildHelpButton(),
-        
-        // Interactive prompts
-        _buildInteractivePrompts(),
-        
-        // Feedback indicators
-        _buildFeedbackIndicators(),
+        _buildStatusOverlay(),
+        _buildInteractionOverlay(),
       ],
     );
   }
@@ -41,50 +63,56 @@ class _TutorialInteractiveElementsState extends State<TutorialInteractiveElement
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Replay button
           FloatingActionButton(
-            heroTag: 'replay',
-            mini: true,
             onPressed: () {
-              widget.narrationService.replayCurrentNarration();
+              if (widget.ttsService.isSpeaking) {
+                widget.ttsService.stop();
+              } else {
+                widget.ttsService.speak(_getStatusText(widget.controller.currentState.value));
+              }
             },
-            child: Icon(Icons.replay),
+            child: const Icon(Icons.play_arrow),
           ),
-          SizedBox(width: 8),
-          // Next button
+          const SizedBox(width: 8),
           FloatingActionButton(
-            heroTag: 'next',
-            onPressed: widget.controller.isTransitioning
-                ? null
-                : () => widget.onInteraction('next'),
-            child: Icon(Icons.arrow_forward),
+            onPressed: () {
+              widget.ttsService.stop();
+              widget.controller.updateState(TutorialState.next);
+            },
+            child: const Icon(Icons.skip_next),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHelpButton() {
+  Widget _buildStatusOverlay() {
     return Positioned(
-      top: 16,
-      right: 16,
+      bottom: 16,
+      left: 16,
       child: GestureDetector(
-        onTapDown: (details) => _showHelpMenu(context, details.globalPosition),
+        onTapUp: (details) => _showOptionsMenu(context, details.globalPosition),
         child: Container(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
+            border: Border.all(
+              color: Theme.of(context).primaryColor,
+              width: 2,
+              style: BorderStyle.solid,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black12,
+                color: Colors.black.withOpacity(0.1),
                 blurRadius: 4,
                 spreadRadius: 1,
               ),
             ],
           ),
           child: Icon(
-            Icons.help_outline,
+            _getStatusIcon(),
+            size: 24,
             color: Theme.of(context).primaryColor,
           ),
         ),
@@ -92,40 +120,38 @@ class _TutorialInteractiveElementsState extends State<TutorialInteractiveElement
     );
   }
 
-  Widget _buildInteractivePrompts() {
+  Widget _buildInteractionOverlay() {
     return ValueListenableBuilder<TutorialState>(
-      valueListenable: widget.controller.currentStateNotifier,
+      valueListenable: widget.controller.currentState,
       builder: (context, state, child) {
         return AnimatedSwitcher(
-          duration: Duration(milliseconds: 300),
-          child: _buildPromptForState(state),
+          duration: const Duration(milliseconds: 300),
+          child: _buildStateSpecificOverlay(state),
         );
       },
     );
   }
 
-  Widget _buildPromptForState(TutorialState state) {
+  Widget _buildStateSpecificOverlay(TutorialState state) {
     switch (state) {
-      case TutorialState.blockIntroduction:
-        return _buildTapPrompt('Tap any block to learn more about it');
-      case TutorialState.firstBlock:
-        return _buildDragPrompt('Drag the Start block to the workspace');
-      case TutorialState.connecting:
-        return _buildConnectionPrompt('Connect blocks by dragging them together');
+      case TutorialState.initial:
+        return _buildDragPrompt();
+      case TutorialState.dragging:
+        return _buildConnectionPrompt();
       default:
-        return SizedBox.shrink();
+        return const SizedBox.shrink();
     }
   }
 
-  Widget _buildTapPrompt(String message) {
+  Widget _buildDragPrompt() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12,
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 4,
             spreadRadius: 1,
           ),
@@ -135,43 +161,44 @@ class _TutorialInteractiveElementsState extends State<TutorialInteractiveElement
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.touch_app),
-          SizedBox(width: 8),
-          Text(message),
+          const SizedBox(width: 8),
+          Text('Drag a block to start'),
         ],
       ),
     );
   }
 
-  Widget _buildFeedbackIndicators() {
+  Widget _buildConnectionPrompt() {
     return ValueListenableBuilder<bool>(
-      valueListenable: widget.controller.showFeedback,
-      builder: (context, showFeedback, child) {
-        if (!showFeedback) return SizedBox.shrink();
-        
-        return Container(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 48,
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Well done!',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ],
-          ),
-        );
+      valueListenable: widget.controller.isLoading,
+      builder: (context, isLoading, child) {
+        if (isLoading) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.autorenew,
+                  size: 32,
+                  color: Theme.of(context).primaryColor,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  widget.controller.statusMessage.value,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink();
       },
     );
   }
 
-  void _showHelpMenu(BuildContext context, Offset position) {
-    showMenu(
+  Future<void> _showOptionsMenu(BuildContext context, Offset position) async {
+    final result = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
         position.dx,
@@ -180,19 +207,76 @@ class _TutorialInteractiveElementsState extends State<TutorialInteractiveElement
         position.dy + 1,
       ),
       items: [
-        PopupMenuItem(
-          child: Text('Replay Instructions'),
-          onTap: () => widget.narrationService.replayCurrentNarration(),
+        const PopupMenuItem<String>(
+          value: 'restart',
+          child: Text('Restart Tutorial'),
         ),
-        PopupMenuItem(
-          child: Text('Show Hints'),
-          onTap: () => widget.onInteraction('show_hints'),
-        ),
-        PopupMenuItem(
+        const PopupMenuItem<String>(
+          value: 'skip',
           child: Text('Skip Tutorial'),
-          onTap: () => widget.onInteraction('skip'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'help',
+          child: Text('Get Help'),
         ),
       ],
     );
+
+    if (result != null) {
+      switch (result) {
+        case 'restart':
+          widget.controller.updateState(TutorialState.initial);
+          break;
+        case 'skip':
+          widget.controller.updateState(TutorialState.completed);
+          break;
+        case 'help':
+          widget.controller.showHint('Try connecting blocks to create patterns');
+          break;
+      }
+    }
   }
+
+  IconData _getStatusIcon() {
+    switch (widget.controller.currentState.value) {
+      case TutorialState.initial:
+        return Icons.play_circle_outline;
+      case TutorialState.dragging:
+        return Icons.drag_indicator;
+      case TutorialState.connecting:
+        return Icons.link;
+      case TutorialState.completed:
+        return Icons.check_circle_outline;
+      case TutorialState.error:
+        return Icons.error_outline;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  String _getStatusText(TutorialState state) {
+    switch (state) {
+      case TutorialState.initial:
+        return 'Start the tutorial';
+      case TutorialState.dragging:
+        return 'Drag blocks to build';
+      case TutorialState.connecting:
+        return 'Connect the blocks';
+      case TutorialState.completed:
+        return 'Tutorial completed';
+      case TutorialState.error:
+        return 'Something went wrong';
+      default:
+        return 'Tutorial in progress';
+    }
+  }
+}
+
+enum TutorialState {
+  initial,
+  dragging,
+  connecting,
+  completed,
+  error,
+  next,
 } 

@@ -888,235 +888,91 @@ class ChallengeModel {
     double passingScore;
     Map<String, dynamic> params = {};
     
-    switch (difficulty) {
-      case PatternDifficulty.basic:
-        description = 'Create a simple pattern using the provided blocks.';
-        objective = 'Build a basic pattern by connecting color blocks to a pattern block.';
+    switch (type) {
+      case ChallengeType.blockArrangement:
+        description = 'Arrange the blocks in the correct sequence.';
+        objective = 'Create a pattern by arranging blocks in the right order.';
         xpReward = 50;
-        passingScore = 0.7;
-        
-        // Add basic constraints
-        constraints.add(ValidationConstraint(
-          id: '${id}_pattern_exists',
-          description: 'Include at least one pattern block',
-          type: ValidationType.patternExists,
-          expectedValue: 'checker_pattern',
-        ));
-        
-        constraints.add(ValidationConstraint(
-          id: '${id}_color_count',
-          description: 'Use at least two color blocks',
-          type: ValidationType.blockCount,
-          expectedValue: {'type': 'color', 'count': 2, 'operator': '>='},
-        ));
-        
-        // Add simple hints
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_1',
-          content: 'Start by dragging a pattern block to your workspace.',
-          order: 0,
-        ));
-        
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_2',
-          content: 'Connect color blocks to your pattern block to create a visual pattern.',
-          order: 1,
-        ));
-        
+        passingScore = 0.8;
+        params = {
+          'maxBlocks': 6,
+          'requiredPatterns': ['checker_pattern'],
+          'availableColors': ['black', 'gold'],
+        };
+        break;
+      
+      case ChallengeType.patternPrediction:
+        description = 'Predict the pattern that will be created by the given code.';
+        objective = 'Analyze the code and select the correct pattern outcome.';
+        xpReward = 75;
+        passingScore = 0.8;
         params = {
           'maxBlocks': 8,
-          'requiredPatterns': ['checker_pattern'],
-          'availableColors': ['black', 'gold', 'red'],
+          'requiredPatterns': ['checker_pattern', 'zigzag_pattern'],
+          'availableColors': ['black', 'gold', 'red', 'blue'],
         };
         break;
-        
-      case PatternDifficulty.intermediate:
-        description = 'Create a pattern that uses loops to demonstrate pattern repetition.';
-        objective = 'Build a repeating pattern using loop blocks to make your code more efficient.';
+      
+      case ChallengeType.codeOptimization:
+        description = 'Optimize the code to create the pattern more efficiently.';
+        objective = 'Reduce the number of blocks while maintaining the same pattern.';
         xpReward = 100;
-        passingScore = 0.75;
-        
-        // Add intermediate constraints
-        constraints.add(ValidationConstraint(
-          id: '${id}_pattern_exists',
-          description: 'Include at least one pattern block',
-          type: ValidationType.patternExists,
-          expectedValue: 'zigzag_pattern',
-        ));
-        
-        constraints.add(ValidationConstraint(
-          id: '${id}_loop_usage',
-          description: 'Use at least one loop block',
-          type: ValidationType.loopCount,
-          expectedValue: 1,
-        ));
-        
-        constraints.add(ValidationConstraint(
-          id: '${id}_color_variety',
-          description: 'Use at least three different colors',
-          type: ValidationType.colorUsage,
-          expectedValue: ['black', 'gold', 'blue'],
-          isRequired: false,
-          weight: 0.5,
-        ));
-        
-        // Add intermediate hints
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_1',
-          content: 'Try using a loop block to repeat your pattern sequence.',
-          order: 0,
-        ));
-        
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_2',
-          content: 'Connect your pattern blocks inside the loop body for efficient repetition.',
-          order: 1,
-        ));
-        
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_3',
-          content: 'Different colors can represent different meanings in Kente patterns.',
-          order: 2,
-          isMajor: false,
-        ));
-        
+        passingScore = 0.7;
+        params = {
+          'maxBlocks': 10,
+          'requiredPatterns': ['checker_pattern', 'zigzag_pattern'],
+          'availableColors': ['black', 'gold', 'red', 'blue'],
+          'requireLoops': true,
+        };
+        break;
+      
+      case ChallengeType.debugging:
+        description = 'Find and fix the bugs in the pattern code.';
+        objective = 'Identify and correct the issues to create the intended pattern.';
+        xpReward = 100;
+        passingScore = 0.8;
         params = {
           'maxBlocks': 12,
-          'requiredPatterns': ['zigzag_pattern', 'stripes_pattern'],
-          'availableColors': ['black', 'gold', 'red', 'blue', 'green'],
-          'requireStructure': true,
+          'requiredPatterns': ['checker_pattern', 'zigzag_pattern'],
+          'availableColors': ['black', 'gold', 'red', 'blue'],
+          'requireLoops': true,
         };
         break;
-        
-      case PatternDifficulty.advanced:
-        description = 'Create a complex pattern using nested loops and multiple pattern types.';
-        objective = 'Build an advanced pattern by combining different pattern blocks with nested loops.';
-        xpReward = 200;
-        passingScore = 0.8;
-        
-        // Add advanced constraints
-        constraints.add(ValidationConstraint(
-          id: '${id}_pattern_variety',
-          description: 'Use at least two different pattern blocks',
-          type: ValidationType.blockCount,
-          expectedValue: {'type': 'pattern', 'count': 2, 'operator': '>='},
-        ));
-        
-        constraints.add(ValidationConstraint(
-          id: '${id}_loop_usage',
-          description: 'Use at least two loop blocks',
-          type: ValidationType.loopCount,
-          expectedValue: 2,
-        ));
-        
-        constraints.add(ValidationConstraint(
-          id: '${id}_color_variety',
-          description: 'Use at least four different colors',
-          type: ValidationType.colorUsage,
-          expectedValue: ['black', 'gold', 'blue', 'green'],
-        ));
-        
-        constraints.add(ValidationConstraint(
-          id: '${id}_code_efficiency',
-          description: 'Create an efficient code structure',
-          type: ValidationType.codeEfficiency,
-          expectedValue: 15, // Maximum allowed blocks without loops
-          weight: 0.8,
-        ));
-        
-        // Add advanced hints
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_1',
-          content: 'Try nesting one loop inside another to create a complex pattern structure.',
-          order: 0,
-        ));
-        
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_2',
-          content: 'Each pattern block can represent a different element of traditional Kente cloth.',
-          order: 1,
-        ));
-        
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_3',
-          content: 'The most efficient solution will use nested loops for repeated patterns.',
-          order: 2,
-          isMajor: true,
-          unlockCost: 5,
-        ));
-        
+      
+      case ChallengeType.patternCreation:
+        description = 'Create a pattern that meets the given requirements.';
+        objective = 'Design and implement a pattern using the available blocks.';
+        xpReward = 150;
+        passingScore = 0.7;
         params = {
-          'maxBlocks': 20,
+          'maxBlocks': 15,
           'requiredPatterns': ['checker_pattern', 'zigzag_pattern', 'diamonds_pattern'],
-          'availableColors': ['black', 'gold', 'red', 'blue', 'green', 'purple'],
-          'requireStructure': true,
+          'availableColors': ['black', 'gold', 'red', 'blue', 'green'],
+          'requireLoops': true,
           'allowNestedLoops': true,
         };
         break;
-        
-      case PatternDifficulty.master:
-        description = 'Create a masterful Kente pattern that tells a cultural story through code.';
-        objective = 'Design an original pattern using all available code constructs and connect it to a cultural narrative.';
-        xpReward = 500;
-        passingScore = 0.85;
-        
-        // Add master constraints
-        constraints.add(ValidationConstraint(
-          id: '${id}_pattern_variety',
-          description: 'Use at least three different pattern blocks',
-          type: ValidationType.blockCount,
-          expectedValue: {'type': 'pattern', 'count': 3, 'operator': '>='},
-        ));
-        
-        constraints.add(ValidationConstraint(
-          id: '${id}_structure_complexity',
-          description: 'Use multiple structural elements (loops, rows, columns)',
-          type: ValidationType.blockCount,
-          expectedValue: {'type': 'structure', 'count': 3, 'operator': '>='},
-        ));
-        
-        constraints.add(ValidationConstraint(
-          id: '${id}_color_meaning',
-          description: 'Use colors with cultural meaning (black, gold, green, red, blue)',
-          type: ValidationType.colorUsage,
-          expectedValue: ['black', 'gold', 'green', 'red', 'blue'],
-        ));
-        
-        constraints.add(ValidationConstraint(
-          id: '${id}_custom_pattern',
-          description: 'Create a pattern with cultural significance',
-          type: ValidationType.customFunction,
-          expectedValue: {
-            'type': 'alternating_colors',
-            'description': 'Colors should alternate in a meaningful pattern',
-          },
-          weight: 1.0,
-        ));
-        
-        // Add master hints
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_1',
-          content: 'Traditional Kente patterns tell stories through their structure and colors.',
-          order: 0,
-        ));
-        
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_2',
-          content: 'Try creating a main pattern function and reusing it in different contexts.',
-          order: 1,
-          unlockCost: 5,
-        ));
-        
-        challengeHints.add(ChallengeHint(
-          id: '${id}_hint_3',
-          content: 'Black represents maturity, gold represents royalty, red represents spiritual significance.',
-          order: 2,
-          isMajor: true,
-          unlockCost: 10,
-        ));
-        
+      
+      case ChallengeType.conceptExplanation:
+        description = 'Explain the concept through a coding example.';
+        objective = 'Create a pattern that demonstrates the given concept.';
+        xpReward = 125;
+        passingScore = 0.7;
         params = {
-          'maxBlocks': 30,
+          'maxBlocks': 12,
+          'requiredPatterns': ['checker_pattern', 'zigzag_pattern', 'diamonds_pattern'],
+          'availableColors': ['black', 'gold', 'red', 'blue', 'green'],
+          'requireLoops': true,
+        };
+        break;
+      
+      case ChallengeType.matching:
+        description = 'Match each concept with its correct implementation.';
+        objective = 'Connect concepts to their corresponding code examples.';
+        xpReward = 200;
+        passingScore = 0.8;
+        params = {
+          'maxBlocks': 20,
           'requiredPatterns': ['checker_pattern', 'zigzag_pattern', 'diamonds_pattern', 'square_pattern'],
           'availableColors': ['black', 'gold', 'red', 'blue', 'green', 'purple', 'white'],
           'requireStructure': true,
@@ -1124,17 +980,6 @@ class ChallengeModel {
           'requireCulturalConnection': true,
         };
         break;
-      
-      default:
-        description = 'Create a pattern using the available blocks.';
-        objective = 'Combine blocks to create an interesting pattern.';
-        xpReward = 50;
-        passingScore = 0.7;
-        params = {
-          'maxBlocks': 8,
-          'requiredPatterns': ['checker_pattern'],
-          'availableColors': ['black', 'gold'],
-        };
     }
     
     return ChallengeModel(
@@ -1208,7 +1053,7 @@ class ChallengeModel {
                         'during important ceremonies and festivals.',
         );
       
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return CulturalContext(
           title: 'Master Weaver Traditions',
           description: 'Master weavers create cloth that speaks through its patterns, telling stories '
@@ -1231,9 +1076,6 @@ class ChallengeModel {
                         'for ceremonial occasions. Each pattern could signify a specific proverb or '
                         'historical event.',
         );
-      
-      default:
-        return null;
     }
   }
 }
@@ -1343,7 +1185,7 @@ class ChallengeTemplateFactory {
           properties: {'value': 'checker'},
           connections: [],
           iconPath: 'assets/images/blocks/checker_pattern.png',
-          color: Colors.blue,
+          colorHex: '#2196F3', // Blue color hex
         ));
         
         // Two same colors - should be alternating
@@ -1356,7 +1198,7 @@ class ChallengeTemplateFactory {
           properties: {'color': Colors.black.value.toString()},
           connections: [],
           iconPath: 'assets/images/blocks/shuttle_black.png',
-          color: Colors.black,
+          colorHex: '#000000', // Black color hex
         ));
         
         buggyBlocks.add(Block(
@@ -1368,7 +1210,7 @@ class ChallengeTemplateFactory {
           properties: {'color': Colors.black.value.toString()},
           connections: [],
           iconPath: 'assets/images/blocks/shuttle_black.png',
-          color: Colors.black,
+          colorHex: '#000000', // Black color hex
         ));
         break;
         
@@ -1383,7 +1225,7 @@ class ChallengeTemplateFactory {
           properties: {'value': 'zigzag'},
           connections: [],
           iconPath: 'assets/images/blocks/zigzag_pattern.png',
-          color: Colors.blue,
+          colorHex: '#2196F3', // Blue color hex
         ));
         
         buggyBlocks.add(Block(
@@ -1395,12 +1237,12 @@ class ChallengeTemplateFactory {
           properties: {'value': '0'}, // Bug: Loop count of zero!
           connections: [],
           iconPath: 'assets/images/blocks/loop_icon.png',
-          color: Colors.green,
+          colorHex: '#4CAF50', // Green color hex
         ));
         break;
         
       case PatternDifficulty.advanced:
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         // Advanced bug: Nested loops with incorrect connections
         buggyBlocks.add(Block(
           id: 'pattern_block_1',
@@ -1411,7 +1253,7 @@ class ChallengeTemplateFactory {
           properties: {'value': 'complex'},
           connections: [],
           iconPath: 'assets/images/blocks/complex_pattern.png',
-          color: Colors.blue,
+          colorHex: '#2196F3', // Blue color hex
         ));
         
         buggyBlocks.add(Block(
@@ -1423,7 +1265,7 @@ class ChallengeTemplateFactory {
           properties: {'value': '3'},
           connections: [],
           iconPath: 'assets/images/blocks/loop_icon.png',
-          color: Colors.green,
+          colorHex: '#4CAF50', // Green color hex
         ));
         
         buggyBlocks.add(Block(
@@ -1436,23 +1278,9 @@ class ChallengeTemplateFactory {
           // Bug: Inner loop not properly connected to outer loop
           connections: [],
           iconPath: 'assets/images/blocks/loop_icon.png',
-          color: Colors.green,
+          colorHex: '#4CAF50', // Green color hex
         ));
         break;
-        
-      default:
-        // Default case for safety
-        buggyBlocks.add(Block(
-          id: 'pattern_block_default',
-          name: 'Basic Pattern',
-          description: 'A simple pattern with an issue',
-          type: BlockType.pattern,
-          subtype: 'checker_pattern',
-          properties: {'value': 'checker'},
-          connections: [],
-          iconPath: 'assets/images/blocks/checker_pattern.png',
-          color: Colors.blue,
-        ));
     }
     
     // Add specialized debugging instructions
@@ -1465,11 +1293,9 @@ class ChallengeTemplateFactory {
         debuggingObjective = 'Correct the loop settings to make the pattern repeat properly.';
         break;
       case PatternDifficulty.advanced:
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         debuggingObjective = 'Fix the connections between the nested loops to create a proper complex pattern.';
         break;
-      default:
-        debuggingObjective = 'Identify and fix the issues in this pattern.';
     }
     
     // Create the debugging challenge

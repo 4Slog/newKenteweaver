@@ -226,7 +226,6 @@ class _StoryChoiceWidgetState extends State<StoryChoiceWidget> with SingleTicker
       case StoryChoiceStyle.descriptive:
         return _buildDescriptiveChoice(text, description, icon, isSelected, isDisabled);
       case StoryChoiceStyle.standard:
-      default:
         return _buildStandardChoice(text, icon, isSelected, isDisabled);
     }
   }
@@ -329,7 +328,7 @@ class _StoryChoiceWidgetState extends State<StoryChoiceWidget> with SingleTicker
                   style: TextStyle(
                     fontSize: 14,
                     color: isSelected 
-                        ? Colors.black.withOpacity(0.7) 
+                        ? Colors.black.withValues(alpha: 0.7)
                         : isDisabled ? Colors.grey.shade400 : Colors.black54,
                   ),
                 ),
@@ -364,7 +363,6 @@ class _StoryChoiceWidgetState extends State<StoryChoiceWidget> with SingleTicker
           ),
         );
       case StoryChoiceStyle.standard:
-      default:
         return const BoxDecoration(
           color: Colors.transparent,
         );

@@ -42,7 +42,12 @@ class ColorPalette {
 
   // Get a color with adjusted opacity
   static Color withOpacity(Color color, double opacity) {
-    return color.withOpacity(opacity);
+    return Color.fromARGB(
+      (opacity * 255).round(),
+      color.red,
+      color.green,
+      color.blue,
+    );
   }
 
   // Get a lighter version of a color
@@ -59,7 +64,7 @@ class ColorPalette {
   static Color complementary(Color color) {
     final hslColor = HSLColor.fromColor(color);
     return HSLColor.fromAHSL(
-      color.alpha / 255.0,
+      color.a / 255.0,
       (hslColor.hue + 180) % 360,
       hslColor.saturation,
       hslColor.lightness,

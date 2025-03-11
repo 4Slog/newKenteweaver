@@ -58,7 +58,7 @@ void main() {
           ),
         ],
         iconPath: '',
-        color: Colors.blue, // Added required color parameter
+        colorHex: '#2196F3', // Blue color hex
       ),
       Block(
         id: 'test2',
@@ -76,7 +76,7 @@ void main() {
           ),
         ],
         iconPath: '',
-        color: Colors.red, // Added required color parameter
+        colorHex: '#F44336', // Red color hex
       ),
     ]);
 
@@ -96,6 +96,10 @@ void main() {
               // Store for verification
               sourceId = sourceBlockId;
               targetId = targetBlockId;
+              
+              // Verify the connection IDs
+              expect(sourceId, 'test1');
+              expect(targetId, 'test2');
             },
           ),
         ),
@@ -154,17 +158,13 @@ void main() {
       },
     ]);
 
-    Block? selectedBlock;
-
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SmartWorkspace(
             blockCollection: blockCollection,
             difficulty: PatternDifficulty.basic,
-            onBlockSelected: (block) {
-              selectedBlock = block;
-            },
+            onBlockSelected: (block) {},
             onWorkspaceChanged: () {},
           ),
         ),

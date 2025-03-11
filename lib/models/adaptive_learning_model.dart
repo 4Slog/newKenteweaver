@@ -105,7 +105,7 @@ class LearningStylePreferences {
       case PatternDifficulty.advanced:
         baseRatio = 0.5; // 50% narrative, 50% challenges
         break;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         baseRatio = 0.4; // 40% narrative, 60% challenges
         break;
     }
@@ -137,7 +137,7 @@ class LearningStylePreferences {
       case PatternDifficulty.advanced:
         baseFrequency = 'minimal';
         break;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         baseFrequency = 'rare';
         break;
     }
@@ -249,7 +249,7 @@ class ConceptMastery {
     final averageMastery = getAverageMastery();
     
     if (averageMastery >= 0.9) {
-      return PatternDifficulty.master;
+      return PatternDifficulty.expert;
     } else if (averageMastery >= 0.7) {
       return PatternDifficulty.advanced;
     } else if (averageMastery >= 0.4) {
@@ -497,7 +497,7 @@ class AdaptiveLearningProfile extends ChangeNotifier {
         return 'moderate';
       case PatternDifficulty.advanced:
         return 'high';
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return 'expert';
     }
   }
@@ -514,7 +514,7 @@ class AdaptiveLearningProfile extends ChangeNotifier {
         return prefersExploration ? 'low' : 'medium';
       case PatternDifficulty.advanced:
         return prefersExploration ? 'minimal' : 'low';
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return 'minimal';
     }
   }

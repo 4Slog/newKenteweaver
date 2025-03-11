@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
-import '../services/localization_service.dart';
+import '../services/story_engine_service.dart';
+import '../services/story_navigation_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/responsive_builder.dart';
-import '../l10n/messages.dart';
+import '../widgets/story_card.dart';
+import '../widgets/animated_background.dart';
+import '../models/story_model.dart';
+import '../models/pattern_difficulty.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -16,9 +19,8 @@ class WelcomeScreen extends StatefulWidget {
 class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeInAnimation;
-  int _currentStep = 0;
-  String? _translatedWelcome;
-  final List<String> _supportedLanguages = ['en', 'fr', 'tw'];
+  bool _isLoading = true;
+  StoryModel? _introStory;
 
   @override
   void initState() {
@@ -37,86 +39,169 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     ));
 
     _controller.forward();
-    _translateWelcomeMessage();
+    _loadIntroductoryStory();
   }
 
-  Future<void> _translateWelcomeMessage() async {
+  Future<void> _loadIntroductoryStory() async {
     try {
-      final model = Provider.of<GenerativeModel>(context, listen: false);
-      final prompt = '''
-      Translate the following welcome message to French (fr) and Twi (tw):
-      
-      English: "Welcome to Kente Codeweaver - Where tradition meets technology"
-      ''';
+      final storyEngine = Provider.of<StoryEngineService>(context, listen: false);
+      final story = await storyEngine.generateStory(
+        storyId: 'intro_tutorial',
+        difficulty: PatternDifficulty.basic,
+        targetConcepts: ['app_introduction', 'basic_blocks'],
+        language: 'en',
+      );
 
-      final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
-      final translations = response.text?.split('\n') ?? [];
-
-      setState(() {
-        _translatedWelcome = translations.join('\n');
-      });
+      if (mounted) {
+        setState(() {
+          _introStory = story;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      debugPrint('Translation error: $e');
+      debugPrint('Error loading intro story: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  void _startIntroductoryStory() async {
+    if (_introStory == null) return;
+    
+    final navigation = Provider.of<StoryNavigationService>(context, listen: false);
+    await navigation.startStory(_introStory!.startNode.id);
+    
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/story');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ResponsiveBuilder(
-        mobile: _buildMobileLayout(),
-        tablet: _buildTabletLayout(),
-        desktop: _buildDesktopLayout(),
+      body: Stack(
+        children: [
+          const AnimatedBackground(
+            backgroundId: 'welcome_background',
+          ),
+          ResponsiveBuilder(
+            mobile: _buildMobileLayout(),
+            tablet: _buildTabletLayout(),
+            desktop: _buildDesktopLayout(),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildMobileLayout() {
     return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildHeader(),
-          _buildContent(),
-          _buildNavigationButtons(),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 32),
+            _buildMainStoryCard(),
+            const SizedBox(height: 24),
+            _buildFeatureCards(),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTabletLayout() {
-    return Row(
-      children: [
-        Expanded(
-          flex: 1,
-          child: _buildHeader(),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(48),
+        child: Column(
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 48),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _buildMainStoryCard(),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  flex: 2,
+                  child: _buildFeatureCards(),
+                ),
+              ],
+            ),
+          ],
         ),
-        Expanded(
-          flex: 2,
-          child: Column(
-            children: [
-              Expanded(child: _buildContent()),
-              _buildNavigationButtons(),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildDesktopLayout() {
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: _buildHeader(),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(64),
+        child: Column(
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 64),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: _buildMainStoryCard(),
+                ),
+                const SizedBox(width: 32),
+                Expanded(
+                  child: _buildFeatureCards(),
+                ),
+              ],
+            ),
+          ],
         ),
-        Expanded(
-          flex: 3,
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      children: [
+        Image.asset(
+          'assets/images/characters/kweku_welcome.png',
+          height: 200,
+          errorBuilder: (context, error, stackTrace) {
+            return const Icon(
+              Icons.person,
+              size: 200,
+              color: AppTheme.kenteGold,
+            );
+          },
+        ),
+        const SizedBox(height: 24),
+        FadeTransition(
+          opacity: _fadeInAnimation,
           child: Column(
             children: [
-              Expanded(child: _buildContent()),
-              _buildNavigationButtons(),
+              Text(
+                'Welcome to Kente Codeweaver',
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  color: AppTheme.kenteGold,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Join Kweku on a journey through code and culture',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.white70,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -124,219 +209,72 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: const AssetImage('assets/images/story/background_pattern.png'),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.2),
-            BlendMode.dstATop,
-          ),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(
-            'assets/images/characters/ananse_teaching.png',
-            height: 200,
-          ),
-          const SizedBox(height: 24),
-          FadeTransition(
-            opacity: _fadeInAnimation,
-            child: Column(
-              children: [
-                Text(
-                  AppLocalizations.of(context).welcomeMessage,
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: AppTheme.kenteGold,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                if (_translatedWelcome != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Text(
-                      _translatedWelcome!,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white70,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  Widget _buildMainStoryCard() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    return StoryCard(
+      title: 'Begin Your Journey',
+      description: 'Start with an introduction to the world of Kente patterns and coding blocks',
+      image: 'assets/images/story/intro_preview.png',
+      isLocked: false,
+      onTap: _startIntroductoryStory,
     );
   }
 
-  Widget _buildContent() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildOnboardingStep(),
-          const SizedBox(height: 24),
-          _buildProgressIndicator(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOnboardingStep() {
-    final steps = [
-      _buildWelcomeStep(),
-      _buildTutorialStep(),
-      _buildCulturalStep(),
-    ];
-
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 500),
-      child: steps[_currentStep],
-    );
-  }
-
-  Widget _buildWelcomeStep() {
+  Widget _buildFeatureCards() {
     return Column(
-      key: const ValueKey('welcome'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Image.asset(
-          'assets/images/tutorial/basic_pattern_explanation.png',
-          height: 200,
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'Learn coding through the art of Kente weaving',
-          style: Theme.of(context).textTheme.headlineMedium,
-          textAlign: TextAlign.center,
+        _buildFeatureCard(
+          icon: Icons.code,
+          title: 'Visual Block Programming',
+          description: 'Create patterns using simple, visual blocks',
         ),
         const SizedBox(height: 16),
-        Text(
-          'Discover the beauty of traditional patterns while mastering programming concepts',
-          style: Theme.of(context).textTheme.bodyLarge,
-          textAlign: TextAlign.center,
+        _buildFeatureCard(
+          icon: Icons.palette,
+          title: 'Cultural Learning',
+          description: 'Discover the art of Kente weaving',
+        ),
+        const SizedBox(height: 16),
+        _buildFeatureCard(
+          icon: Icons.school,
+          title: 'Interactive Stories',
+          description: 'Learn through modern Ananse tales',
         ),
       ],
     );
   }
 
-  Widget _buildTutorialStep() {
-    return Column(
-      key: const ValueKey('tutorial'),
-      children: [
-        Image.asset(
-          'assets/images/tutorial/loop_explanation.png',
-          height: 200,
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'Interactive Learning Experience',
-          style: Theme.of(context).textTheme.headlineMedium,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Use visual blocks to create patterns and learn coding concepts',
-          style: Theme.of(context).textTheme.bodyLarge,
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCulturalStep() {
-    return Column(
-      key: const ValueKey('cultural'),
-      children: [
-        Image.asset(
-          'assets/images/tutorial/color_meaning_diagram.png',
-          height: 200,
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'Rich Cultural Heritage',
-          style: Theme.of(context).textTheme.headlineMedium,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Learn about the cultural significance of patterns and colors',
-          style: Theme.of(context).textTheme.bodyLarge,
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProgressIndicator() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(3, (index) {
-        return Container(
-          width: 10,
-          height: 10,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _currentStep == index
-                ? AppTheme.kenteGold
-                : AppTheme.kenteGold.withOpacity(0.3),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildNavigationButtons() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (_currentStep > 0)
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _currentStep--;
-                });
-              },
-              child: Text(AppLocalizations.of(context).previous),
-            )
-          else
-            const SizedBox(width: 80),
-          ElevatedButton(
-            onPressed: () {
-              if (_currentStep < 2) {
-                setState(() {
-                  _currentStep++;
-                });
-              } else {
-                Navigator.pushReplacementNamed(context, '/tutorial');
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.kenteGold,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 32,
-                vertical: 16,
-              ),
+  Widget _buildFeatureCard({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppTheme.kenteGold, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            child: Text(
-              _currentStep < 2 ? AppLocalizations.of(context).next : AppLocalizations.of(context).start,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

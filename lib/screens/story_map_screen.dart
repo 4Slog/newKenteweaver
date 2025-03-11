@@ -228,7 +228,7 @@ class _StoryMapScreenState extends State<StoryMapScreen> {
         ),
         
         // Path to next difficulty
-        if (difficulty != PatternDifficulty.master)
+        if (difficulty != PatternDifficulty.expert)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: Center(
@@ -294,7 +294,7 @@ class _StoryMapScreenState extends State<StoryMapScreen> {
   // Helper method to get difficulty from story ID
   PatternDifficulty _getDifficultyFromId(String storyId) {
     if (storyId.contains('master')) {
-      return PatternDifficulty.master;
+      return PatternDifficulty.expert;
     } else if (storyId.contains('advanced')) {
       return PatternDifficulty.advanced;
     } else if (storyId.contains('intermediate')) {
@@ -332,7 +332,7 @@ class _StoryMapScreenState extends State<StoryMapScreen> {
         return Colors.orange;
       case PatternDifficulty.advanced:
         return Colors.red;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return Colors.purple;
     }
   }
@@ -345,7 +345,7 @@ class _StoryMapScreenState extends State<StoryMapScreen> {
         return 'Intermediate';
       case PatternDifficulty.advanced:
         return 'Advanced';
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return 'Master';
     }
   }
@@ -358,7 +358,7 @@ class _StoryMapScreenState extends State<StoryMapScreen> {
         return '8-10';
       case PatternDifficulty.advanced:
         return '10-11';
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return '11-12';
     }
   }

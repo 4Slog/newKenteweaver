@@ -196,12 +196,10 @@ class _EmbeddedTutorialState extends State<EmbeddedTutorial> {
                 BreadcrumbItem(
                   label: 'Tutorials',
                   fallbackIcon: Icons.school,
-                  iconAsset: 'assets/images/navigation/tutorial_breadcrumb.png',
                 ),
                 BreadcrumbItem(
                   label: _tutorialData!.title,
                   fallbackIcon: Icons.book,
-                  iconAsset: 'assets/images/navigation/tutorial_step_breadcrumb.png',
                 ),
               ],
             ),

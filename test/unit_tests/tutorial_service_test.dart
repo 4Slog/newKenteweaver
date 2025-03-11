@@ -169,7 +169,7 @@ void main() {
       final basicId = await tutorialService.getRecommendedTutorialId(PatternDifficulty.basic);
       final intermediateId = await tutorialService.getRecommendedTutorialId(PatternDifficulty.intermediate);
       final advancedId = await tutorialService.getRecommendedTutorialId(PatternDifficulty.advanced);
-      final masterId = await tutorialService.getRecommendedTutorialId(PatternDifficulty.master);
+      final masterId = await tutorialService.getRecommendedTutorialId(PatternDifficulty.expert);
       
       // Assert
       expect(basicId, 'basic_pattern_tutorial');

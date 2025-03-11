@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/pattern_model.dart';
+import '../models/pattern_difficulty.dart';
 
 class AIAssistant extends ChangeNotifier {
   String _hintMessage = "Start coding to receive hints!";
@@ -7,7 +7,7 @@ class AIAssistant extends ChangeNotifier {
   String get hintMessage => _hintMessage;
 
   // Method to generate AI-based hints
-  void generateHint(String playerCode, KentePattern targetPattern) {
+  void generateHint(String playerCode, PatternDifficulty difficulty) {
     if (playerCode.isEmpty) {
       _hintMessage = "Hint: Start by defining a loop to create a base pattern.";
     } else if (playerCode.contains("for") && !playerCode.contains("if")) {

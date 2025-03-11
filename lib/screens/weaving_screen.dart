@@ -267,7 +267,7 @@ class _WeavingScreenState extends State<WeavingScreen> with SingleTickerProvider
             decoration: BoxDecoration(
               color: AppTheme.kenteGold,
               image: DecorationImage(
-                image: const AssetImage('assets/images/patterns/background_pattern.png'),
+                image: const AssetImage('assets/images/navigation/background_pattern.png'),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
                   AppTheme.kenteGold.withOpacity(0.8),

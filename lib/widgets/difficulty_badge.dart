@@ -57,7 +57,7 @@ class DifficultyBadge extends StatelessWidget {
         return Colors.blue;
       case PatternDifficulty.advanced:
         return Colors.orange;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return Colors.purple;
     }
   }
@@ -70,7 +70,7 @@ class DifficultyBadge extends StatelessWidget {
         return Icons.star_half;
       case PatternDifficulty.advanced:
         return Icons.star;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return Icons.auto_awesome;
     }
   }

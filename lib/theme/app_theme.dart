@@ -9,23 +9,29 @@ class AppTheme {
   // Private constructor to prevent instantiation
   AppTheme._();
 
+  // Kente-inspired colors
+  static const Color kenteGold = Color(0xFFFFD700);
+  static const Color kenteRed = Color(0xFFB22222);
+  static const Color kenteGreen = Color(0xFF006400);
+  static const Color kenteBlue = Color(0xFF000080);
+
   /// Generate the light theme data
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: ColorScheme.light(
-        primary: ColorPalette.kenteGold,
-        secondary: ColorPalette.kenteBlue,
-        tertiary: ColorPalette.kenteGreen,
+        primary: kenteGold,
+        secondary: kenteRed,
+        tertiary: kenteGreen,
         error: ColorPalette.error,
-        background: ColorPalette.neutralBackground,
-        surface: Colors.white,
+        surface: ColorPalette.neutralBackground,
+        surfaceVariant: Colors.white,
       ),
       textTheme: AppTypography.lightTextTheme,
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.white,
-        foregroundColor: ColorPalette.neutralDark,
+        backgroundColor: kenteGold,
+        foregroundColor: Colors.black,
         elevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
@@ -46,8 +52,8 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: ColorPalette.kenteGold,
+          foregroundColor: Colors.black,
+          backgroundColor: kenteGold,
           padding: const EdgeInsets.symmetric(
             horizontal: 24,
             vertical: 12,
@@ -59,8 +65,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: ColorPalette.kenteGold,
-          side: BorderSide(color: ColorPalette.kenteGold),
+          foregroundColor: kenteGold,
+          side: BorderSide(color: kenteGold),
           padding: const EdgeInsets.symmetric(
             horizontal: 24,
             vertical: 12,
@@ -72,7 +78,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: ColorPalette.kenteGold,
+          foregroundColor: kenteGold,
           padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 8,
@@ -86,7 +92,7 @@ class AppTheme {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
-            color: ColorPalette.kenteGold,
+            color: kenteGold,
             width: 2,
           ),
         ),
@@ -105,7 +111,7 @@ class AppTheme {
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
-          color: ColorPalette.neutralDark.withOpacity(0.9),
+          color: Colors.black.withOpacity(0.9),
           borderRadius: BorderRadius.circular(4),
         ),
         textStyle: AppTypography.tooltip,
@@ -125,9 +131,9 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.dark(
-        primary: ColorPalette.kenteGold,
-        secondary: ColorPalette.kenteBlue,
-        tertiary: ColorPalette.kenteGreen,
+        primary: kenteGold,
+        secondary: kenteRed,
+        tertiary: kenteGreen,
         error: ColorPalette.error,
         background: ColorPalette.neutralDark,
         surface: ColorPalette.darker(ColorPalette.neutralDark, 0.2),
@@ -158,7 +164,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           foregroundColor: ColorPalette.neutralDark,
-          backgroundColor: ColorPalette.kenteGold,
+          backgroundColor: kenteGold,
           padding: const EdgeInsets.symmetric(
             horizontal: 24,
             vertical: 12,
@@ -170,8 +176,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: ColorPalette.kenteGold,
-          side: BorderSide(color: ColorPalette.kenteGold),
+          foregroundColor: kenteGold,
+          side: BorderSide(color: kenteGold),
           padding: const EdgeInsets.symmetric(
             horizontal: 24,
             vertical: 12,
@@ -183,7 +189,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: ColorPalette.kenteGold,
+          foregroundColor: kenteGold,
           padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 8,
@@ -197,7 +203,7 @@ class AppTheme {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
-            color: ColorPalette.kenteGold,
+            color: kenteGold,
             width: 2,
           ),
         ),

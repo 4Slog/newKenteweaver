@@ -1,71 +1,127 @@
-enum TutorialState {
-  introduction,
-  workspaceReveal,
-  blockIntroduction,
-  firstBlock,
-  connecting,
-  patternPreview,
-  completion
-}
+import 'package:flutter/material.dart';
+import '../models/tutorial_state.dart';
 
+/// Controller for managing visual states during the tutorial
 class TutorialVisualController extends ChangeNotifier {
-  TutorialState _currentState = TutorialState.introduction;
-  bool _isTransitioning = false;
-  double _progressValue = 0.0;
+  final ValueNotifier<double> workspaceOpacity = ValueNotifier(0.0);
+  final ValueNotifier<double> blockScale = ValueNotifier(1.0);
+  final ValueNotifier<double> highlightIntensity = ValueNotifier(0.0);
+  TutorialState currentState = TutorialState.initial;
+  double progress = 0.0;
 
-  // Animated properties
-  final workspaceOpacity = ValueNotifier<double>(0.0);
-  final blockScale = ValueNotifier<double>(1.0);
-  final highlightIntensity = ValueNotifier<double>(0.0);
-  
-  TutorialState get currentState => _currentState;
-  bool get isTransitioning => _isTransitioning;
-  double get progress => _progressValue;
-
-  Future<void> transitionTo(TutorialState newState) async {
-    _isTransitioning = true;
-    notifyListeners();
-
-    // Handle state-specific transitions
+  void updateState(TutorialState newState) {
+    currentState = newState;
+    
     switch (newState) {
+      case TutorialState.initial:
+        _resetState();
+        break;
+      case TutorialState.introduction:
+        _handleIntroduction();
+        break;
       case TutorialState.workspaceReveal:
-        await _animateWorkspaceReveal();
+        _handleWorkspaceReveal();
         break;
-      case TutorialState.blockIntroduction:
-        await _animateBlockIntroduction();
+      case TutorialState.blockDragging:
+        _handleBlockDragging();
         break;
-      // Add more state transitions...
+      case TutorialState.patternSelection:
+        _handlePatternSelection();
+        break;
+      case TutorialState.colorSelection:
+        _handleColorSelection();
+        break;
+      case TutorialState.loopUsage:
+        _handleLoopUsage();
+        break;
+      case TutorialState.rowColumns:
+        _handleRowColumns();
+        break;
+      case TutorialState.culturalContext:
+        _handleCulturalContext();
+        break;
+      case TutorialState.challenge:
+        _handleChallenge();
+        break;
+      case TutorialState.complete:
+        _handleComplete();
+        break;
+      case TutorialState.next:
+        // Handle next state transition
+        break;
     }
-
-    _currentState = newState;
-    _isTransitioning = false;
-    _updateProgress();
+    
     notifyListeners();
   }
 
-  Future<void> _animateWorkspaceReveal() async {
-    await workspaceOpacity.animateTo(
-      1.0,
-      duration: Duration(milliseconds: 800),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  Future<void> _animateBlockIntroduction() async {
-    await blockScale.animateTo(
-      1.2,
-      duration: Duration(milliseconds: 400),
-      curve: Curves.easeOut,
-    );
-    await blockScale.animateTo(
-      1.0,
-      duration: Duration(milliseconds: 200),
-      curve: Curves.easeIn,
-    );
-  }
-
-  void _updateProgress() {
-    _progressValue = _currentState.index / TutorialState.values.length;
+  void updateProgress(double value, {Curve curve = Curves.easeInOut}) {
+    progress = value;
     notifyListeners();
+  }
+
+  void _resetState() {
+    workspaceOpacity.value = 0.0;
+    blockScale.value = 1.0;
+    highlightIntensity.value = 0.0;
+  }
+
+  void _handleIntroduction() {
+    workspaceOpacity.value = 0.3;
+    blockScale.value = 1.0;
+    highlightIntensity.value = 0.5;
+  }
+
+  void _handleWorkspaceReveal() {
+    workspaceOpacity.value = 1.0;
+    blockScale.value = 1.0;
+    highlightIntensity.value = 0.8;
+  }
+
+  void _handleBlockDragging() {
+    workspaceOpacity.value = 1.0;
+    blockScale.value = 1.1;
+    highlightIntensity.value = 1.0;
+  }
+
+  void _handlePatternSelection() {
+    workspaceOpacity.value = 1.0;
+    blockScale.value = 1.0;
+    highlightIntensity.value = 0.8;
+  }
+
+  void _handleColorSelection() {
+    workspaceOpacity.value = 1.0;
+    blockScale.value = 1.0;
+    highlightIntensity.value = 0.8;
+  }
+
+  void _handleLoopUsage() {
+    workspaceOpacity.value = 1.0;
+    blockScale.value = 1.1;
+    highlightIntensity.value = 0.9;
+  }
+
+  void _handleRowColumns() {
+    workspaceOpacity.value = 1.0;
+    blockScale.value = 1.1;
+    highlightIntensity.value = 0.9;
+  }
+
+  void _handleCulturalContext() {
+    workspaceOpacity.value = 1.0;
+    blockScale.value = 1.0;
+    highlightIntensity.value = 0.7;
+  }
+
+  void _handleChallenge() {
+    workspaceOpacity.value = 1.0;
+    blockScale.value = 1.2;
+    highlightIntensity.value = 1.0;
+  }
+
+  void _handleComplete() {
+    workspaceOpacity.value = 1.0;
+    blockScale.value = 1.0;
+    highlightIntensity.value = 0.0;
   }
 } 

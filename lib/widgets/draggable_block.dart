@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/block_model.dart';
-import '../theme/app_theme.dart';
 
 class DraggableBlock extends StatelessWidget {
   final Block block;
@@ -46,13 +45,13 @@ class DraggableBlock extends StatelessWidget {
       height: isCollapsed ? 48 : 120 * scale,
       decoration: BoxDecoration(
         color: isGhost
-            ? Colors.grey.withOpacity(0.3)
+            ? Colors.grey.withValues(alpha: 0.3)
             : block.color,
         borderRadius: BorderRadius.circular(12 * scale),
         boxShadow: isDragging
             ? [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 10,
                   offset: const Offset(0, 5),
                 ),

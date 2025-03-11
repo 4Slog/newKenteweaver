@@ -344,14 +344,14 @@ class PatternAnalyzerService {
         }
         return "Great design! Experiment with nested loops for intricate repetitions found in master-woven Kente.";
         
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         if (patternBlocks < 2 || colorBlocks < 3 || loopBlocks < 1 || structureBlocks < 1) {
-          return "Master patterns use multiple pattern types with various colors, loops, and structure blocks to create authentic Kente designs.";
+          return 'Master patterns use multiple pattern types with various colors, loops, and structure blocks to create authentic Kente designs.';
         }
         if (connections < 6) {
-          return "Create more complex connections between blocks to achieve master-level Kente patterns.";
+          return 'Create more complex connections between blocks to achieve master-level Kente patterns.';
         }
-        return "Excellent mastery! Your pattern shows deep understanding of Kente tradition. Try incorporating more cultural symbolism by researching the meaning of colors and patterns.";
+        return 'Excellent mastery! Your pattern shows deep understanding of Kente tradition. Try incorporating more cultural symbolism by researching the meaning of colors and patterns.';
     }
   }
   
@@ -400,7 +400,7 @@ class PatternAnalyzerService {
         minPatternVariety = 0.5; // At least 3 patterns
         minColorVariety = 0.38; // At least 3 colors
         break;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         minComplexity = 0.7;
         minBlockVariety = 1.0; // All 4 types
         minConnections = 5;
@@ -428,7 +428,7 @@ class PatternAnalyzerService {
     final successRate = metCriteria / criteriaCount;
     
     if (blockCount == 0) {
-      return "Add some blocks to start creating your pattern.";
+      return 'Add some blocks to start creating your pattern.';
     }
     
     // Generate feedback based on success rate
@@ -436,20 +436,20 @@ class PatternAnalyzerService {
       // Excellent feedback (meets 80%+ of criteria)
       switch (difficulty) {
         case PatternDifficulty.basic:
-          return "Excellent work! You've created a beautiful basic Kente pattern with good use of colors and patterns.";
+          return 'Excellent work! You\'ve created a beautiful basic Kente pattern with good use of colors and patterns.';
         case PatternDifficulty.intermediate:
-          return "Fantastic job! Your intermediate pattern shows good understanding of Kente design principles with nice combination of elements.";
+          return 'Fantastic job! Your intermediate pattern shows good understanding of Kente design principles with nice combination of elements.';
         case PatternDifficulty.advanced:
-          return "Outstanding achievement! Your advanced pattern demonstrates creativity and deep understanding of complex Kente structures.";
-        case PatternDifficulty.master:
-          return "Masterful creation! You've designed an authentic Kente pattern with perfect balance of complexity, color, and cultural meaning.";
+          return 'Outstanding achievement! Your advanced pattern demonstrates creativity and deep understanding of complex Kente structures.';
+        case PatternDifficulty.expert:
+          return 'Masterful creation! You\'ve designed an authentic Kente pattern with perfect balance of complexity, color, and cultural meaning.';
       }
     } else if (successRate >= 0.6) {
       // Good feedback (meets 60-79% of criteria)
-      return "Good work on your ${difficulty.displayName.toLowerCase()} pattern! You've met most of the design criteria with some room for improvement.";
+      return 'Good work on your ${difficulty.displayName.toLowerCase()} pattern! You\'ve met most of the design criteria with some room for improvement.';
     } else if (successRate >= 0.4) {
       // Developing feedback (meets 40-59% of criteria)
-      return "Your pattern is developing well. Keep experimenting with different block combinations to meet ${difficulty.displayName.toLowerCase()} level requirements.";
+      return 'Your pattern is developing well. Keep experimenting with different block combinations to meet ${difficulty.displayName.toLowerCase()} level requirements.';
     } else {
       // Needs improvement feedback (meets <40% of criteria)
       // Provide specific feedback on what's missing
@@ -472,10 +472,10 @@ class PatternAnalyzerService {
       }
       
       if (improvements.isEmpty) {
-        return "Your pattern has potential. Continue exploring Kente designs!";
+        return 'Your pattern has potential. Continue exploring Kente designs!';
       }
       
-      return "Your pattern is a good start. To meet the ${difficulty.displayName.toLowerCase()} level requirements, try to ${improvements.join(', and ')}.";
+      return 'Your pattern is a good start. To meet the ${difficulty.displayName.toLowerCase()} level requirements, try to ${improvements.join(', and ')}.';
     }
   }
   
@@ -495,7 +495,7 @@ class PatternAnalyzerService {
     
     // If no blocks, provide general information
     if (patternTypes.isEmpty && colorTypes.isEmpty) {
-      return "Kente cloth is a type of silk and cotton fabric made of interwoven cloth strips, native to Ghana. The patterns and colors have specific cultural meanings.";
+      return 'Kente cloth is a type of silk and cotton fabric made of interwoven cloth strips, native to Ghana. The patterns and colors have specific cultural meanings.';
     }
     
     // Generate cultural context for patterns
@@ -528,29 +528,29 @@ class PatternAnalyzerService {
     }
     
     if (culturalContext.isEmpty) {
-      return "Kente patterns and colors have deep cultural meanings in Ghanaian traditions, representing various aspects of life, values, and history.";
+      return 'Kente patterns and colors have deep cultural meanings in Ghanaian traditions, representing various aspects of life, values, and history.';
     }
     
-    return culturalContext.join("\n\n");
+    return culturalContext.join('\n\n');
   }
   
   /// Get cultural meaning for a specific pattern type
   String _getPatternCulturalMeaning(String patternType) {
     switch (patternType) {
       case 'checker_pattern':
-        return "The Dame-Dame (checker) pattern symbolizes intelligence and strategic thinking, inspired by the game board";
+        return 'The Dame-Dame (checker) pattern symbolizes intelligence and strategic thinking, inspired by the game board';
       case 'zigzag_pattern':
-        return "The Nkyinkyim (zigzag) pattern represents life's journey, adaptability, and the idea that life is not a straight path";
+        return 'The Nkyinkyim (zigzag) pattern represents life\'s journey, adaptability, and the idea that life is not a straight path';
       case 'stripes_vertical_pattern':
-        return "The Kubi (vertical stripes) pattern represents balance, structure, and the orderliness required for social harmony";
+        return 'The Kubi (vertical stripes) pattern represents balance, structure, and the orderliness required for social harmony';
       case 'stripes_horizontal_pattern':
-        return "The Babadua (horizontal stripes) pattern symbolizes strength through unity, like a bundle of bamboo sticks is stronger than one";
+        return 'The Babadua (horizontal stripes) pattern symbolizes strength through unity, like a bundle of bamboo sticks is stronger than one';
       case 'square_pattern':
-        return "The Eban (square) pattern symbolizes protection, security, and safety like a home fence";
+        return 'The Eban (square) pattern symbolizes protection, security, and safety like a home fence';
       case 'diamonds_pattern':
-        return "The Obaakofo (diamond) pattern represents wisdom, excellence, and the democratic values of collective leadership";
+        return 'The Obaakofo (diamond) pattern represents wisdom, excellence, and the democratic values of collective leadership';
       default:
-        return "";
+        return '';
     }
   }
   
@@ -645,7 +645,7 @@ class PatternAnalyzerService {
         }
         break;
         
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         if (patternBlocks < 3) {
           suggestions.add("Master Kente weavers combine multiple pattern types in a single cloth");
         }
@@ -842,7 +842,7 @@ class PatternAnalyzerService {
         goldThreshold = 0.85;
         masterThreshold = 0.98;
         break;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         bronzeThreshold = 0.6;
         silverThreshold = 0.75;
         goldThreshold = 0.9;
@@ -1044,7 +1044,7 @@ class PatternAnalyzerService {
         complexityThreshold = 0.7;
         varietyThreshold = 1.0;
         break;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return 'at_maximum_level';
     }
     
@@ -1067,7 +1067,7 @@ class PatternAnalyzerService {
         return "Intermediate level introduces loop blocks to create repeating patterns. Combine multiple pattern types for more complex designs.";
       case PatternDifficulty.advanced:
         return "Advanced level requires structure blocks like rows and columns. Create nested patterns with organized layouts.";
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return "Master level demands complex combinations of all block types. Create authentic Kente cloth patterns with cultural significance.";
     }
   }

@@ -509,29 +509,29 @@ class _BlocksToolboxState extends State<BlocksToolbox> with SingleTickerProvider
       ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: DraggableBlock(
-        blockId: block.id,
-        onDragStarted: () => widget.onBlockDragged(block),
-        onTap: () => widget.onBlockSelected(block),
-        scale: widget.blockScale,
-        showLabel: widget.showLabels,
-        child: ListTile(
-          leading: _buildBlockIcon(block),
-          title: Text(
-            block.name,
-            style: const TextStyle(fontSize: 14, color: Colors.black),
-          ),
-          subtitle: widget.difficulty != PatternDifficulty.basic &&
-              block.description.isNotEmpty
-              ? Text(
-            block.description,
-            style: const TextStyle(fontSize: 12, color: Colors.black87),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          )
-              : null,
-          dense: true,
-          trailing: const Icon(Icons.drag_indicator, size: 18, color: Colors.grey),
+      child: ListTile(
+        leading: _buildBlockIcon(block),
+        title: Text(
+          block.name,
+          style: const TextStyle(fontSize: 14, color: Colors.black),
+        ),
+        subtitle: widget.difficulty != PatternDifficulty.basic &&
+            block.description.isNotEmpty
+            ? Text(
+          block.description,
+          style: const TextStyle(fontSize: 12, color: Colors.black87),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        )
+            : null,
+        dense: true,
+        trailing: DraggableBlock(
+          block: block,
+          onDragStarted: () => widget.onBlockDragged(block),
+          onTap: () => widget.onBlockSelected(block),
+          scale: widget.blockScale,
+          showLabel: widget.showLabels,
+          isCollapsed: true,
         ),
       ),
     );
