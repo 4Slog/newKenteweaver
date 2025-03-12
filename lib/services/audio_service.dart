@@ -3,6 +3,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import '../models/audio_model.dart' as audio;
+import 'logging_service.dart';
 
 /// Enum representing different audio types for sound effects and music
 enum AudioType {
@@ -27,11 +28,16 @@ class AudioService extends ChangeNotifier {
   // Singleton pattern implementation
   static final AudioService _instance = AudioService._internal();
   factory AudioService() => _instance;
-  AudioService._internal();
+  AudioService._internal() {
+    _loggingService = LoggingService();
+  }
 
   // Audio players for different sound types
   final AudioPlayer _backgroundPlayer = AudioPlayer();
   final AudioPlayer _effectsPlayer = AudioPlayer();
+  
+  // Logging service
+  late final LoggingService _loggingService;
 
   // Audio settings
   bool _isMusicEnabled = true;
@@ -134,6 +140,37 @@ class AudioService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error playing background music: $e');
+    }
+  }
+
+  /// Play a background sound from a file path
+  /// @param soundPath The path to the sound file, relative to assets/audio/
+  Future<void> playBackgroundSound(String? soundPath) async {
+    if (!_isMusicEnabled || soundPath == null || soundPath.isEmpty) return;
+
+    try {
+      // Determine if the path is already prefixed with assets/audio
+      final String fullPath = soundPath.startsWith('assets/') 
+          ? soundPath 
+          : 'assets/audio/$soundPath';
+      
+      // Stop any currently playing music
+      await _backgroundPlayer.stop();
+      
+      // Play the new background sound
+      await _backgroundPlayer.setAsset(fullPath);
+      await _backgroundPlayer.setVolume(_musicVolume);
+      await _backgroundPlayer.setLoopMode(LoopMode.all);
+      await _backgroundPlayer.play();
+      
+      // Set current playing to null since this is a custom sound
+      _currentlyPlayingMusic = null;
+      notifyListeners();
+      
+      _loggingService.debug('Playing background sound: $soundPath', tag: 'AudioService');
+    } catch (e) {
+      debugPrint('Error playing background sound: $e');
+      _loggingService.error('Error playing background sound: $e', tag: 'AudioService');
     }
   }
 

@@ -7,6 +7,8 @@ class UserProgress {
   final List<String> completedLessons;
   final Map<String, List<String>> unlockedSkills;
   final int totalScore;
+  /// Map of story IDs to lists of completed node IDs
+  final Map<String, List<String>> completedStoryNodes;
 
   UserProgress({
     required this.userId,
@@ -15,9 +17,11 @@ class UserProgress {
     List<String>? completedLessons,
     Map<String, List<String>>? unlockedSkills,
     this.totalScore = 0,
+    Map<String, List<String>>? completedStoryNodes,
   })  : lessonProgress = lessonProgress ?? {},
         completedLessons = completedLessons ?? [],
-        unlockedSkills = unlockedSkills ?? {};
+        unlockedSkills = unlockedSkills ?? {},
+        completedStoryNodes = completedStoryNodes ?? {};
 
   factory UserProgress.fromJson(Map<String, dynamic> json) {
     return UserProgress(
@@ -36,6 +40,10 @@ class UserProgress {
           ) ??
           {},
       totalScore: json['totalScore'] as int? ?? 0,
+      completedStoryNodes: (json['completedStoryNodes'] as Map<String, dynamic>?)?.map(
+            (k, v) => MapEntry(k, List<String>.from(v as List)),
+          ) ??
+          {},
     );
   }
 
@@ -47,6 +55,7 @@ class UserProgress {
       'completedLessons': completedLessons,
       'unlockedSkills': unlockedSkills,
       'totalScore': totalScore,
+      'completedStoryNodes': completedStoryNodes,
     };
   }
 
@@ -57,6 +66,7 @@ class UserProgress {
     List<String>? completedLessons,
     Map<String, List<String>>? unlockedSkills,
     int? totalScore,
+    Map<String, List<String>>? completedStoryNodes,
   }) {
     return UserProgress(
       userId: userId ?? this.userId,
@@ -65,6 +75,43 @@ class UserProgress {
       completedLessons: completedLessons ?? this.completedLessons,
       unlockedSkills: unlockedSkills ?? this.unlockedSkills,
       totalScore: totalScore ?? this.totalScore,
+      completedStoryNodes: completedStoryNodes ?? this.completedStoryNodes,
+    );
+  }
+  
+  /// Add a completed story node to the user's progress
+  UserProgress addCompletedStoryNode(String storyId, String nodeId) {
+    final Map<String, List<String>> updatedNodes = Map.from(completedStoryNodes);
+    
+    if (updatedNodes.containsKey(storyId)) {
+      if (!updatedNodes[storyId]!.contains(nodeId)) {
+        updatedNodes[storyId] = [...updatedNodes[storyId]!, nodeId];
+      }
+    } else {
+      updatedNodes[storyId] = [nodeId];
+    }
+    
+    return copyWith(completedStoryNodes: updatedNodes);
+  }
+  
+  /// Check if a story node has been completed
+  bool hasCompletedStoryNode(String storyId, String nodeId) {
+    return completedStoryNodes[storyId]?.contains(nodeId) ?? false;
+  }
+  
+  /// Get all completed nodes for a story
+  List<String> getCompletedNodesForStory(String storyId) {
+    return completedStoryNodes[storyId] ?? [];
+  }
+  
+  /// Add a completed lesson to the user's progress
+  UserProgress addCompletedLesson(String lessonId) {
+    if (completedLessons.contains(lessonId)) {
+      return this;
+    }
+    
+    return copyWith(
+      completedLessons: [...completedLessons, lessonId],
     );
   }
 }

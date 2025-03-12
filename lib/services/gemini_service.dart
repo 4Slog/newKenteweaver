@@ -829,3 +829,259 @@ Suggest a personalized learning path in JSON format:
       if (match != null) {
         final jsonStr = match.group(0);
         if (jsonStr != null) {
+          return Map<String, dynamic>.from(
+            jsonDecode(jsonStr) as Map<String, dynamic>
+          );
+        }
+      }
+      
+      // Try to parse the entire text if the regex approach fails
+      try {
+        return Map<String, dynamic>.from(
+          jsonDecode(responseText) as Map<String, dynamic>
+        );
+      } catch (_) {
+        _loggingService.warning('Failed to parse cultural context response', tag: 'GeminiService');
+        return _generateFallbackCulturalContext('', '');
+      }
+    } catch (e) {
+      _loggingService.error('Error parsing cultural context response: $e', tag: 'GeminiService');
+      return _generateFallbackCulturalContext('', '');
+    }
+  }
+
+  /// Generate a code hint based on the player's code and difficulty level
+  Future<String> generateCodeHint({
+    required String code,
+    required PatternDifficulty difficulty,
+  }) async {
+    try {
+      final prompt = '''
+      Analyze this code for a Kente pattern and provide a helpful hint:
+      
+      Code:
+      $code
+      
+      Difficulty: ${difficulty.toString().split('.').last}
+      
+      Provide a concise, encouraging hint that guides the user without giving away the solution.
+      The hint should be appropriate for a 9-12 year old.
+      ''';
+      
+      return await generateText(prompt);
+    } catch (e) {
+      _loggingService.log('Failed to generate code hint: $e');
+      return "Try experimenting with different patterns and colors!";
+    }
+  }
+  
+  /// Generate a code explanation
+  Future<String> generateCodeExplanation(String code) async {
+    try {
+      final prompt = '''
+      Explain this code for a Kente pattern in simple terms:
+      
+      Code:
+      $code
+      
+      Provide a clear explanation that a 9-12 year old would understand.
+      Focus on what the code does and how it creates a pattern.
+      ''';
+      
+      return await generateText(prompt);
+    } catch (e) {
+      _loggingService.log('Failed to generate code explanation: $e');
+      return "This code creates a pattern using colors and shapes.";
+    }
+  }
+  
+  /// Generate a story node
+  Future<String> generateStoryNode(String prompt) async {
+    try {
+      return await generateText(prompt);
+    } catch (e) {
+      _loggingService.log('Failed to generate story node: $e');
+      return '{"id":"fallback","title":"The Journey Begins","content":"Let\'s start our adventure!","chapter":"introduction","nextNodes":{"continue":"next"}}';
+    }
+  }
+  
+  /// Generate a complete story
+  Future<String> generateStory(String prompt) async {
+    try {
+      return await generateText(prompt);
+    } catch (e) {
+      _loggingService.log('Failed to generate story: $e');
+      return '{"id":"fallback","title":"Coding Adventure","description":"A journey into coding","difficulty":"basic","nodes":[{"id":"start","title":"Beginning","content":"Let\'s start!","chapter":"introduction","nextNodes":{"continue":"end"}},{"id":"end","title":"The End","content":"Well done!","chapter":"introduction","nextNodes":{}}],"startNodeId":"start"}';
+    }
+  }
+  
+  /// Generate a learning path based on user's progress
+  Future<Map<String, dynamic>> generateLearningPath({
+    required Map<String, double> conceptMastery,
+    required PatternDifficulty difficulty,
+    required Map<String, dynamic> preferences,
+  }) async {
+    try {
+      final prompt = '''
+      Generate a personalized learning path based on the following information:
+      
+      Concept Mastery:
+      ${jsonEncode(conceptMastery)}
+      
+      Difficulty Level:
+      ${difficulty.toString().split('.').last}
+      
+      User Preferences:
+      ${jsonEncode(preferences)}
+      
+      Return a JSON object with a 'path' array containing concept IDs in the recommended order.
+      ''';
+      
+      final response = await generateText(prompt);
+      return jsonDecode(response);
+    } catch (e) {
+      _loggingService.log('Failed to generate learning path: $e');
+      return {
+        'path': ['sequences', 'loops', 'conditions'],
+      };
+    }
+  }
+  
+  /// Generate a challenge based on concept and difficulty
+  Future<Map<String, dynamic>> generateChallenge({
+    required String conceptId,
+    required PatternDifficulty difficulty,
+    required double masteryLevel,
+    Map<String, dynamic>? context,
+  }) async {
+    try {
+      final difficultyStr = difficulty.toString().split('.').last;
+      final contextStr = context != null ? jsonEncode(context) : '{}';
+      
+      final prompt = '''
+      Generate a coding challenge for the Kente Codeweaver app with the following parameters:
+      
+      Concept: $conceptId
+      Difficulty: $difficultyStr
+      User Mastery Level: $masteryLevel
+      Context: $contextStr
+      
+      The challenge should be appropriate for a 9-12 year old learning to code through Kente patterns.
+      
+      Return a JSON object with the following structure:
+      {
+        "id": "unique_challenge_id",
+        "title": "Challenge title",
+        "description": "Challenge description",
+        "conceptId": "$conceptId",
+        "difficulty": "$difficultyStr",
+        "requirements": ["requirement1", "requirement2"],
+        "availableBlocks": ["block1", "block2"],
+        "sampleSolution": "optional sample solution",
+        "hints": ["hint1", "hint2"]
+      }
+      ''';
+      
+      final response = await generateText(prompt);
+      return jsonDecode(response);
+    } catch (e) {
+      _loggingService.log('Failed to generate challenge: $e');
+      return {
+        'id': 'fallback_${conceptId}_${difficulty.toString().split('.').last}',
+        'title': 'Pattern Challenge',
+        'description': 'Create a pattern using the available blocks.',
+        'conceptId': conceptId,
+        'difficulty': difficulty.toString().split('.').last,
+        'requirements': [
+          'Use at least one loop',
+          'Include color variation',
+        ],
+        'availableBlocks': [
+          'loop',
+          'color',
+          'condition',
+        ],
+        'hints': [
+          'Start by creating a loop to repeat your pattern.',
+          'Add conditions to create variation in your pattern.',
+        ],
+      };
+    }
+  }
+  
+  /// Validate a challenge solution
+  Future<Map<String, dynamic>> validateChallengeSolution({
+    required String challengeId,
+    required BlockCollection blocks,
+    required PatternDifficulty difficulty,
+  }) async {
+    try {
+      final prompt = '''
+      Validate this solution for challenge $challengeId:
+      
+      Blocks:
+      ${jsonEncode(blocks)}
+      
+      Difficulty: ${difficulty.toString().split('.').last}
+      
+      Return a JSON object with the following structure:
+      {
+        "success": true/false,
+        "feedback": "Feedback message",
+        "performance": 0.0-1.0,
+        "conceptId": "concept_id",
+        "hints": ["hint1", "hint2"]
+      }
+      ''';
+      
+      final response = await generateText(prompt);
+      return jsonDecode(response);
+    } catch (e) {
+      _loggingService.log('Failed to validate challenge solution: $e');
+      return {
+        'success': false,
+        'feedback': 'Unable to validate your solution at this time. Please try again later.',
+        'performance': 0.5,
+        'conceptId': challengeId.split('_')[0],
+        'hints': ['Check your internet connection.'],
+      };
+    }
+  }
+  
+  /// Generate a hint for a challenge
+  Future<String> generateChallengeHint({
+    required String challengeId,
+    required BlockCollection blocks,
+    required PatternDifficulty difficulty,
+    required int hintLevel,
+  }) async {
+    try {
+      final prompt = '''
+      Generate a hint for challenge $challengeId:
+      
+      Blocks:
+      ${jsonEncode(blocks)}
+      
+      Difficulty: ${difficulty.toString().split('.').last}
+      Hint Level: $hintLevel (1=subtle, 3=more direct)
+      
+      Provide a helpful hint that is appropriate for the hint level.
+      The hint should guide the user without giving away the complete solution.
+      ''';
+      
+      return await generateText(prompt);
+    } catch (e) {
+      _loggingService.log('Failed to generate challenge hint: $e');
+      switch (hintLevel) {
+        case 1:
+          return 'Try using a loop to create a repeating pattern.';
+        case 2:
+          return 'Add a condition inside your loop to create variation.';
+        case 3:
+          return 'Use different colors to make your pattern more interesting.';
+        default:
+          return 'Experiment with different combinations of blocks to solve the challenge.';
+      }
+    }
+  }
+}
