@@ -1,66 +1,66 @@
 import 'package:flutter/material.dart';
-import 'screens/enhanced_features_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'app.dart';
+import 'services/storage_service.dart';
+import 'services/progress_service.dart';
+import 'services/audio_service.dart';
+import 'services/tts_service.dart';
+import 'services/adaptive_learning_service.dart';
+import 'services/tutorial_service.dart';
+import 'providers/app_state_provider.dart';
+import 'providers/language_provider.dart';
+import 'package:provider/provider.dart';
 
-void main() {
-  runApp(const KenteWeaverApp());
-}
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
+  await dotenv.load(fileName: '.env');
+  
+  // Initialize services
+  final storageService = StorageService();
+  await storageService.initialize();
+  final progressService = ProgressService(storageService);
+  
+  // Initialize audio and TTS services
+  final audioService = AudioService();
+  await audioService.initialize();
+  final ttsService = TTSService();
+  await ttsService.initialize();
+  
+  // Initialize adaptive learning service
+  final adaptiveLearningService = AdaptiveLearningService();
+  await adaptiveLearningService.initialize();
+  
+  // Initialize tutorial service
+  final tutorialService = TutorialService();
 
-class KenteWeaverApp extends StatelessWidget {
-  const KenteWeaverApp({Key? key}) : super(key: key);
+  // Initialize Gemini AI model
+  final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+  final model = GenerativeModel(
+    model: 'gemini-pro',
+    apiKey: apiKey,
+  );
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Kente Weaver',
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData.dark().copyWith(
-        primaryColor: Colors.indigo,
-        colorScheme: ColorScheme.dark(
-          primary: Colors.indigo,
-          secondary: Colors.amber,
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => AppStateProvider()..initialize(),
         ),
-        useMaterial3: true,
-      ),
-      themeMode: ThemeMode.system,
-      home: const HomeScreen(),
-      routes: {
-        '/enhanced_features': (context) => const EnhancedFeaturesScreen(),
-      },
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kente Weaver'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Welcome to Kente Weaver',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/enhanced_features');
-              },
-              child: const Text('Explore Enhanced Features'),
-            ),
-          ],
+        ChangeNotifierProvider(
+          create: (_) => LanguageProvider(),
         ),
-      ),
-    );
-  }
-} 
+        Provider.value(value: progressService),
+        Provider.value(value: model),
+        Provider.value(value: audioService),
+        Provider.value(value: ttsService),
+        ChangeNotifierProvider.value(value: adaptiveLearningService),
+        Provider.value(value: tutorialService),
+      ],
+      child: const KenteCodeWeaverApp(),
+    ),
+  );
+}
