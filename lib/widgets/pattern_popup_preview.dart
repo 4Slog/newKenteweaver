@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' hide Colors;
 import '../models/block_model.dart';
 import '../models/pattern_difficulty.dart';
 import '../services/unified/pattern_engine.dart';
 import '../services/pattern_analyzer_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cultural_context_card.dart';
+import '../widgets/weaving_pattern_renderer.dart';
 
 /// A popup dialog for previewing generated Kente patterns.
 ///
@@ -51,25 +53,25 @@ class PatternPopupPreview extends StatefulWidget {
   State<PatternPopupPreview> createState() => _PatternPopupPreviewState();
 }
 
-class _PatternPopupPreviewState extends State<PatternPopupPreview> {
+class _PatternPopupPreviewState extends State<PatternPopupPreview> with SingleTickerProviderStateMixin {
   late PatternEngine _patternEngine;
   late PatternAnalyzerService _patternAnalyzer;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
 
   List<List<Color>> _generatedPattern = [];
   Map<String, dynamic> _analysisResults = {};
-
+  String _selectedExportFormat = 'PNG';
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = '';
-
-  // View controls
   double _scale = 1.0;
   Offset _offset = Offset.zero;
-  final TransformationController _transformationController = TransformationController();
+  bool _showColorPalette = false;
+  bool _showSymbolism = false;
 
-  // Export options
-  String _selectedExportFormat = 'PNG';
-  final List<String> _exportFormats = ['PNG', 'SVG', 'JSON'];
+  final TransformationController _transformationController = TransformationController();
 
   @override
   void initState() {
@@ -77,11 +79,28 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
     _patternEngine = PatternEngine();
     _patternAnalyzer = PatternAnalyzerService();
 
+    // Initialize animations
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _scaleAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutBack,
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    );
+
     _initializeAndGeneratePattern();
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _transformationController.dispose();
     super.dispose();
   }
@@ -100,10 +119,8 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
 
       // Generate the pattern
       final pattern = _patternEngine.generatePatternFromBlocks(widget.blockCollection);
-
-      // Analyze the pattern
       final analysis = await _patternAnalyzer.analyzePattern(
-        blocks: widget.blockCollection.toLegacyBlocks(),
+        blocks: widget.blockCollection.blocks.map((block) => block.toJson()).toList(),
         difficulty: widget.difficulty,
       );
 
@@ -112,6 +129,8 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
         _analysisResults = analysis;
         _isLoading = false;
       });
+
+      _animationController.forward();
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -124,31 +143,28 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.85,
-        height: MediaQuery.of(context).size.height * 0.85,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            _buildHeader(context),
-            const Divider(),
-
-            // Main content
-            Expanded(
-              child: _isLoading
-                  ? _buildLoadingState()
-                  : _hasError
-                  ? _buildErrorState()
-                  : _buildPatternPreview(),
-            ),
-
-            // Action buttons
-            _buildActionButtons(context),
-          ],
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.8,
+          height: MediaQuery.of(context).size.height * 0.8,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
+              const Divider(),
+              Expanded(
+                child: _isLoading
+                    ? _buildLoadingState()
+                    : _hasError
+                        ? _buildErrorState()
+                        : _buildPreviewContent(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -205,6 +221,27 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
                 onPressed: _resetTransformation,
                 tooltip: 'Reset view',
               ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: Icon(
+                  Icons.palette,
+                  color: _showColorPalette ? AppTheme.kenteGold : Colors.grey,
+                ),
+                onPressed: () {
+                  setState(() => _showColorPalette = !_showColorPalette);
+                },
+                tooltip: 'Show color palette',
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.info_outline,
+                  color: _showSymbolism ? AppTheme.kenteGold : Colors.grey,
+                ),
+                onPressed: () {
+                  setState(() => _showSymbolism = !_showSymbolism);
+                },
+                tooltip: 'Show symbolism',
+              ),
             ],
 
             // Close button
@@ -225,16 +262,13 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(color: AppTheme.kenteGold),
-          const SizedBox(height: 24),
-          Text(
-            'Generating your Kente pattern...',
-            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+          const CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.kenteGold),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
-            'Applying traditional weaving techniques',
-            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            'Generating your pattern...',
+            style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
       ),
@@ -247,25 +281,29 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 48),
-          const SizedBox(height: 24),
-          Text(
-            'Unable to generate pattern',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+          const Icon(
+            Icons.error_outline,
+            color: AppTheme.kenteRed,
+            size: 48,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          Text(
+            'Error Generating Pattern',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppTheme.kenteRed,
+            ),
+          ),
+          const SizedBox(height: 8),
           Text(
             _errorMessage,
-            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
             textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.grey[600],
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _initializeAndGeneratePattern,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.kenteGold,
-              foregroundColor: Colors.black,
-            ),
             child: const Text('Try Again'),
           ),
         ],
@@ -274,77 +312,130 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
   }
 
   /// Build the main pattern preview area
-  Widget _buildPatternPreview() {
-    return Column(
+  Widget _buildPreviewContent() {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Pattern visualization
         Expanded(
           flex: 3,
-          child: Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: InteractiveViewer(
-                transformationController: _transformationController,
-                boundaryMargin: const EdgeInsets.all(double.infinity),
-                minScale: 0.5,
-                maxScale: 3.0,
-                onInteractionEnd: (_) {
-                  final matrix = _transformationController.value;
-                  setState(() {
-                    _scale = matrix.getMaxScaleOnAxis();
-                    _offset = Offset(
-                      matrix.getTranslation().x,
-                      matrix.getTranslation().y,
-                    );
-                  });
-                },
-                child: Center(
-                  child: CustomPaint(
-                    painter: _PatternPreviewPainter(
-                      pattern: _generatedPattern,
-                      cellSize: 20.0,
-                      showGrid: widget.showGrid,
-                    ),
-                    size: Size(
-                      _generatedPattern[0].length * 20.0,
-                      _generatedPattern.length * 20.0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Card(
+                  elevation: 2,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: InteractiveViewer(
+                      transformationController: _transformationController,
+                      boundaryMargin: const EdgeInsets.all(double.infinity),
+                      minScale: 0.5,
+                      maxScale: 3.0,
+                      onInteractionEnd: (_) {
+                        final matrix = _transformationController.value;
+                        setState(() {
+                          _scale = matrix.getMaxScaleOnAxis();
+                          _offset = Offset(
+                            matrix.getTranslation().x,
+                            matrix.getTranslation().y,
+                          );
+                        });
+                      },
+                      child: WeavingPatternRenderer(
+                        patternGrid: _generatedPattern,
+                        cellSize: 20.0,
+                        showGrid: widget.showGrid,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+              if (widget.showAnalysis)
+                _buildAnalysisSection(),
+            ],
           ),
         ),
-
-        const SizedBox(height: 16),
-
-        // Bottom section: Cultural context and analysis
-        if (widget.showCulturalContext || widget.showAnalysis)
-          Expanded(
-            flex: 2,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Cultural context panel
-                if (widget.showCulturalContext)
-                  Expanded(
-                    child: _buildCulturalContext(),
-                  ),
-
-                // Analysis panel
-                if (widget.showAnalysis) ...[
-                  if (widget.showCulturalContext)
-                    const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildAnalysisPanel(),
-                  ),
-                ],
-              ],
+        if (_showColorPalette || _showSymbolism)
+          SizedBox(
+            width: 250,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _showColorPalette
+                  ? _buildColorPalette()
+                  : _buildSymbolismInfo(),
             ),
           ),
       ],
+    );
+  }
+
+  /// Build the analysis section
+  Widget _buildAnalysisSection() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Pattern Analysis',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildAnalysisMetric(
+                'Complexity',
+                _analysisResults['complexity_score']?.toString() ?? 'N/A',
+                Icons.analytics,
+              ),
+              _buildAnalysisMetric(
+                'Blocks',
+                _analysisResults['block_count']?.toString() ?? 'N/A',
+                Icons.widgets,
+              ),
+              _buildAnalysisMetric(
+                'Colors',
+                _analysisResults['color_count']?.toString() ?? 'N/A',
+                Icons.palette,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build a single analysis metric
+  Widget _buildAnalysisMetric(String label, String value, IconData icon) {
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            children: [
+              Icon(icon, color: AppTheme.kenteGold),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 12),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -571,73 +662,76 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
     );
   }
 
-  /// Build the action buttons
-  Widget _buildActionButtons(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Export options
-          if (!_isLoading && !_hasError)
-            _buildExportOptions(context),
+  /// Build the color palette
+  Widget _buildColorPalette() {
+    final uniqueColors = <Color>{};
+    for (final row in _generatedPattern) {
+      uniqueColors.addAll(row);
+    }
 
-          // Main action buttons
-          Row(
-            children: [
-              TextButton(
-                onPressed: widget.onClose ?? () => Navigator.of(context).pop(),
-                child: const Text('Close'),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Color Palette',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(width: 8),
-              if (!_isLoading && !_hasError && widget.onSave != null)
-                ElevatedButton(
-                  onPressed: widget.onSave,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.kenteGold,
-                    foregroundColor: Colors.black,
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: uniqueColors.map((color) {
+                return Tooltip(
+                  message: _getColorName(color),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
                   ),
-                  child: const Text('Save Pattern'),
-                ),
-            ],
-          ),
-        ],
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  /// Build export options dropdown
-  Widget _buildExportOptions(BuildContext context) {
-    return Row(
-      children: [
-        const Text('Export as:'),
-        const SizedBox(width: 8),
-        DropdownButton<String>(
-          value: _selectedExportFormat,
-          items: _exportFormats.map((format) => DropdownMenuItem<String>(
-            value: format,
-            child: Text(format),
-          )).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _selectedExportFormat = value;
-              });
-            }
-          },
+  /// Build the symbolism information
+  Widget _buildSymbolismInfo() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Pattern Symbolism',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _analysisResults['cultural_significance'] ?? 'No symbolism information available.',
+              style: const TextStyle(fontSize: 14),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        ElevatedButton(
-          onPressed: widget.onExport != null
-              ? () => widget.onExport!(_selectedExportFormat)
-              : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.grey[200],
-            foregroundColor: Colors.black,
-          ),
-          child: const Text('Export'),
-        ),
-      ],
+      ),
     );
   }
 
@@ -678,10 +772,10 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
 
   /// Update the transformation controller with the current scale and offset
   void _updateTransformation() {
-    final updatedMatrix = Matrix4.identity()
-      ..translate(_offset.dx, _offset.dy)
-      ..scale(_scale);
-    _transformationController.value = updatedMatrix;
+    final matrix = Matrix4.identity()
+      ..scale(_scale)
+      ..setTranslation(Vector3(_offset.dx, _offset.dy, 0.0));
+    _transformationController.value = matrix;
   }
 
   /// Reset the transformation to default
@@ -691,6 +785,14 @@ class _PatternPopupPreviewState extends State<PatternPopupPreview> {
       _offset = Offset.zero;
       _transformationController.value = Matrix4.identity();
     });
+  }
+
+  String _getColorName(Color color) {
+    if (color == AppTheme.kenteGold) return 'Gold';
+    if (color == AppTheme.kenteRed) return 'Red';
+    if (color == AppTheme.kenteGreen) return 'Green';
+    if (color == AppTheme.kenteBlue) return 'Blue';
+    return 'Custom Color';
   }
 }
 

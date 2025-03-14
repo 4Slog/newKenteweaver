@@ -1,7 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../models/block_model.dart';
 
 /// Widget for displaying a text-based representation of blocks
 class BlockRepresentationWidget extends StatelessWidget {

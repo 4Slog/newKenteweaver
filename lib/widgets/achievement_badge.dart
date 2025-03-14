@@ -113,10 +113,8 @@ class _AchievementBadgeState extends State<AchievementBadge> with SingleTickerPr
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
                     color: widget.isUnlocked
-                        ? AppTheme.kenteGold.withOpacity(
-                        _isNew ? (_glowAnimation.value * 0.8 + 0.2) : 0.8
-                    )
-                        : Colors.grey.withOpacity(0.3),
+                        ? AppTheme.kenteGold.withValues(alpha: _isNew ? (_glowAnimation.value * 0.8 + 0.2) : 0.8)
+                        : Colors.grey.withValues(alpha: 0.3),
                     width: widget.isUnlocked ? 2 : 1,
                   ),
                 ),
@@ -130,7 +128,7 @@ class _AchievementBadgeState extends State<AchievementBadge> with SingleTickerPr
                       end: Alignment.bottomRight,
                       colors: [
                         Colors.white,
-                        AppTheme.kenteGold.withOpacity(0.2),
+                        AppTheme.kenteGold.withValues(alpha: 0.2),
                       ],
                     )
                         : null,
@@ -151,7 +149,7 @@ class _AchievementBadgeState extends State<AchievementBadge> with SingleTickerPr
                               width: 80,
                               height: 80,
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.7),
+                                color: Colors.black.withValues(alpha: 0.7),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -294,7 +292,7 @@ class _AchievementBadgeState extends State<AchievementBadge> with SingleTickerPr
       height: 80,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         border: Border.all(
           color: color,
           width: 2,

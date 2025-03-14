@@ -16,27 +16,31 @@ dependencies:
   cupertino_icons: ^1.0.6
   google_fonts: ^6.2.1
   lottie: ^3.3.1
-  flutter_svg: ^2.0.17
+  flutter_svg: ^2.0.9
 
   # State management
-  provider: ^6.0.5
+  provider: ^6.1.2
 
   # Local storage
   shared_preferences: ^2.2.2
-  flutter_secure_storage: ^10.0.0-beta.4
-  sqflite: ^2.3.0
-  path: ^1.8.3
-  path_provider: ^2.0.15
+  flutter_secure_storage: ^9.0.0
+  sqflite: ^2.3.2
+  path: ^1.9.0
+  path_provider: ^2.1.2
+
+  # Device info and security
+  device_info_plus: ^9.1.2
+  crypto: ^3.0.3
 
   # Environment configuration
-  flutter_dotenv: ^5.0.2
+  flutter_dotenv: ^5.1.0
 
   # Networking
-  http: ^1.3.0
+  http: ^1.2.1
   
   # Utilities
-  intl: any
-  url_launcher: ^6.1.11
+  intl: ^0.19.0
+  url_launcher: ^6.2.5
   uuid: ^4.3.3
   google_generative_ai: ^0.4.6
   
@@ -44,42 +48,66 @@ dependencies:
   just_audio: ^0.9.36
   flutter_tts: ^4.2.2
 
+  # Feature dependencies
+  flutter_gemini: ^3.0.0
+  json_annotation: ^4.6.0
+  flutter_markdown: ^0.6.17
+  audioplayers: ^5.2.1
+  flutter_animate: ^4.2.0
+  flutter_bloc: ^8.1.3
+  equatable: ^2.0.5
+  bloc: ^8.1.2
+  meta: ^1.9.1
+  collection: ^1.17.1
+  vector_math: ^2.1.4
+  mime: ^2.0.0
+  dio: ^5.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
-  mockito: ^5.4.0
-  build_runner: ^2.4.4
-  lints: ^5.1.1
+  flutter_lints: ^3.0.1
+  mockito: ^5.4.4
+  build_runner: ^2.4.8
+  lints: ^3.0.0
   intl_translation: ^0.20.1
+  json_serializable: ^6.3.1
 
 flutter:
   generate: true
   uses-material-design: true
 
   assets:
-    # custom Block engine
-    - assets/documents/
-    - assets/documents/blocks.json
+    # Data files
+    - assets/data/
+    - assets/data/patterns.json
+    - assets/data/stories.json
+    - assets/data/tutorials.json
+
+    # Audio assets
+    - assets/audio/background/
+    - assets/audio/effects/
+    - assets/audio/voice/
+
+    # Image assets
+    - assets/images/patterns/basic/
+    - assets/images/patterns/intermediate/
+    - assets/images/patterns/advanced/
+    - assets/images/characters/
+    - assets/images/backgrounds/
+    - assets/images/icons/
+    - assets/images/achievements/
+    - assets/images/blocks/
+    - assets/images/navigation/
+    - assets/images/badges/
+
+    # Animations
+    - assets/animations/onboarding/
+    - assets/animations/transitions/
+    - assets/animations/celebrations/
 
     # Fonts
     - assets/fonts/
-
-    # Images by category
-    - assets/images/achievements/
-    - assets/images/blocks/
-    - assets/images/characters/
-    - assets/images/story/
-    - assets/images/tutorial/
-    - assets/images/navigation/
-    - assets/images/badges/
-    - assets/images/patterns/
-
-    # Animations
-    - assets/animations/
-    
-    # Music and sound effects
-    - assets/music/
 
     # Environment configuration
     - .env

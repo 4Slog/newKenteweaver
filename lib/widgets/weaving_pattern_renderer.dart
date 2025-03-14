@@ -66,26 +66,26 @@ class WeavingPatternRenderer extends StatelessWidget {
       );
     } else if (patternData != null) {
       // Legacy support for the old patternData format
-      if (patternData!["grid"] == null || patternData!["grid"].isEmpty) {
+      if (patternData!['grid'] == null || patternData!['grid'].isEmpty) {
         return const SizedBox(
           height: 300,
           child: Center(
-            child: Text("No valid pattern data"),
+            child: Text('No valid pattern data'),
           ),
         );
       }
       
       try {
-        final rows = patternData!["grid"].length;
-        final columns = patternData!["grid"][0].length;
+        final rows = patternData!['grid'].length;
+        final columns = patternData!['grid'][0].length;
         
         final grid = List.generate(
           rows,
           (i) => List.generate(
             columns,
             (j) {
-              final colorString = patternData!["grid"][i][j] ?? "#000000";
-              return Color(int.parse(colorString.replaceAll("#", "0xFF")));
+              final colorString = patternData!['grid'][i][j] ?? '#000000';
+              return Color(int.parse(colorString.replaceAll('#', '0xFF')));
             },
           ),
         );

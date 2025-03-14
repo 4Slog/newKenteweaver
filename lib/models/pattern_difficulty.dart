@@ -1,8 +1,25 @@
+/// Represents the difficulty level of a pattern
 enum PatternDifficulty {
   basic,
   intermediate,
   advanced,
-  master;
+  expert;
+
+  /// Creates a PatternDifficulty from JSON data
+  factory PatternDifficulty.fromJson(Map<String, dynamic> json) {
+    final String value = json['value'] as String;
+    return PatternDifficulty.values.firstWhere(
+      (e) => e.toString().split('.').last == value,
+      orElse: () => PatternDifficulty.basic,
+    );
+  }
+
+  /// Converts the PatternDifficulty to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'value': toString().split('.').last,
+    };
+  }
 
   String get displayName {
     switch (this) {
@@ -12,8 +29,8 @@ enum PatternDifficulty {
         return 'Intermediate';
       case PatternDifficulty.advanced:
         return 'Advanced';
-      case PatternDifficulty.master:
-        return 'Master';
+      case PatternDifficulty.expert:
+        return 'Expert';
     }
   }
 
@@ -25,7 +42,7 @@ enum PatternDifficulty {
         return 'Explore more complex patterns and combinations';
       case PatternDifficulty.advanced:
         return 'Master advanced techniques and cultural meanings';
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return 'Create your own innovative patterns';
     }
   }
@@ -38,7 +55,7 @@ enum PatternDifficulty {
         return 70;
       case PatternDifficulty.advanced:
         return 80;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return 90;
     }
   }

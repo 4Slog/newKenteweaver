@@ -32,7 +32,6 @@ class ProfileScreen extends StatelessWidget {
                     BreadcrumbItem(
                       label: 'Profile',
                       fallbackIcon: Icons.person,
-                      iconAsset: 'assets/images/navigation/profile_breadcrumb.png',
                     ),
                   ],
                 ),
@@ -160,7 +159,7 @@ class ProfileScreen extends StatelessWidget {
           value: progress,
           backgroundColor: Colors.grey[200],
           valueColor: AlwaysStoppedAnimation<Color>(
-            AppTheme.getDifficultyColor(difficulty, context),
+            AppTheme.getDifficultyColor(context, difficulty.toString().split('.').last),
           ),
         ),
         const SizedBox(height: 4),
@@ -198,7 +197,7 @@ class ProfileScreen extends StatelessWidget {
                   context,
                   'Pattern Master',
                   Icons.star,
-                  PatternDifficulty.master,
+                  PatternDifficulty.expert,
                 ),
                 _buildAchievementBadge(
                   context,
@@ -226,7 +225,7 @@ class ProfileScreen extends StatelessWidget {
     IconData icon,
     PatternDifficulty difficulty,
   ) {
-    final color = AppTheme.getDifficultyColor(difficulty, context);
+    final color = AppTheme.getDifficultyColor(context, difficulty.toString().split('.').last);
     return Tooltip(
       message: title,
       child: CircleAvatar(

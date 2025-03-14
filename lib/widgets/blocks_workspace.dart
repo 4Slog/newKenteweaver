@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/block_model.dart';
 import '../models/pattern_difficulty.dart';
+import '../services/block_definition_service.dart';
 import 'connected_block.dart';
 
 class BlocksWorkspace extends StatefulWidget {
@@ -28,6 +29,10 @@ class BlocksWorkspace extends StatefulWidget {
 }
 
 class _BlocksWorkspaceState extends State<BlocksWorkspace> {
+  String? _activeDragBlockId;
+  String? _activeConnectionId;
+  Offset? _currentDragPosition;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -55,75 +60,169 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.drag_indicator,
-            size: 48,
-            color: Colors.grey[400],
+    return DragTarget<String>(
+      onWillAcceptWithDetails: (details) {
+        return details.data != null;
+      },
+      onAcceptWithDetails: (details) {
+        final blockId = details.data;
+        final blockDefinitionService = BlockDefinitionService();
+        final block = blockDefinitionService.getBlockById(blockId);
+        
+        if (block != null) {
+          widget.onBlockSelected(block);
+          debugPrint('Added block to workspace: $blockId');
+        } else {
+          debugPrint('Block not found: $blockId');
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isDraggingOver = candidateData.isNotEmpty;
+        
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDraggingOver ? Colors.blue : Colors.transparent,
+              width: 2,
+            ),
+            color: isDraggingOver 
+                ? Colors.blue.withValues(alpha: 26)
+                : Colors.transparent,
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Drag blocks here to start weaving!',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.drag_indicator,
+                  size: 48,
+                  color: isDraggingOver ? Colors.blue : Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isDraggingOver 
+                      ? 'Release to add block!' 
+                      : 'Drag blocks here to start weaving!',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: isDraggingOver ? Colors.blue : Colors.grey[600],
+                    fontWeight: isDraggingOver ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tip: Traditional Kente patterns start with color blocks',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Tip: Traditional Kente patterns start with color blocks',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-              fontStyle: FontStyle.italic,
-            ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBlocksList() {
+    return Stack(
+      children: [
+        ListView.builder(
+          itemCount: widget.blockCollection.blocks.length,
+          itemBuilder: (context, index) {
+            final block = widget.blockCollection.blocks[index];
+            return ConnectedBlock(
+              block: block,
+              onDelete: widget.onDelete != null 
+                  ? () => widget.onDelete!(block.id) 
+                  : null,
+              onValueChanged: (value) {
+                if (widget.onValueChanged != null) {
+                  widget.onValueChanged!(block.id, value);
+                }
+              },
+              onConnectionDragStart: _handleConnectionDragStart,
+              onConnectionDragUpdate: _handleConnectionDragUpdate,
+              onConnectionDragEnd: _handleConnectionDragEnd,
+              onConnectionDragCancel: _handleConnectionDragCancel,
+              difficulty: widget.difficulty,
+              showPreview: _activeDragBlockId != null,
+            );
+          },
+          padding: const EdgeInsets.only(bottom: 100),
+        ),
+        if (_activeDragBlockId != null && _currentDragPosition != null)
+          Positioned(
+            left: _currentDragPosition!.dx,
+            top: _currentDragPosition!.dy,
+            child: _buildConnectionPreview(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildConnectionPreview() {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: Colors.blue,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withValues(alpha: 77),
+            blurRadius: 5,
+            spreadRadius: 2,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBlocksList() {
-    return ListView.builder(
-      itemCount: widget.blockCollection.blocks.length,
-      itemBuilder: (context, index) {
-        final block = widget.blockCollection.blocks[index];
-        return ConnectedBlock(
-          block: block,
-          onDelete: widget.onDelete != null 
-              ? () => widget.onDelete!(block.id) 
-              : null,
-          onValueChanged: (value) => widget.onValueChanged != null
-              ? widget.onValueChanged!(block.id, value)
-              : {},
-          onConnectionDragStart: _handleConnectionDragStart,
-          onConnectionDragUpdate: _handleConnectionDragUpdate,
-          onConnectionDragEnd: _handleConnectionDragEnd,
-          onConnectionDragCancel: _handleConnectionDragCancel,
-          difficulty: widget.difficulty,
-        );
-      },
-      padding: const EdgeInsets.only(bottom: 100), // Space for floating suggestions
-    );
-  }
-
   void _handleConnectionDragStart(String blockId, String connectionId) {
-    // Implement connection drag start
+    setState(() {
+      _activeDragBlockId = blockId;
+      _activeConnectionId = connectionId;
+      debugPrint('Started connection drag: $blockId, $connectionId');
+    });
   }
 
   void _handleConnectionDragUpdate(Offset position) {
-    // Implement connection drag update
+    setState(() {
+      _currentDragPosition = position;
+    });
   }
 
   void _handleConnectionDragEnd(String targetBlockId, String targetConnectionId) {
-    // Implement connection drag end
+    if (_activeDragBlockId != null && _activeConnectionId != null) {
+      widget.onBlocksConnected?.call(
+        _activeDragBlockId!,
+        _activeConnectionId!,
+        targetBlockId,
+        targetConnectionId,
+      );
+      
+      debugPrint('Connected blocks: $_activeDragBlockId:$_activeConnectionId -> $targetBlockId:$targetConnectionId');
+      widget.onWorkspaceChanged();
+    }
+    
+    setState(() {
+      _activeDragBlockId = null;
+      _activeConnectionId = null;
+      _currentDragPosition = null;
+    });
   }
 
   void _handleConnectionDragCancel() {
-    // Implement connection drag cancel
+    setState(() {
+      _activeDragBlockId = null;
+      _activeConnectionId = null;
+      _currentDragPosition = null;
+      debugPrint('Connection drag cancelled');
+    });
   }
 
   Widget _buildPatternGuidance(BuildContext context) {
@@ -176,29 +275,40 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
   }
 
   Widget _buildGuidanceStep(String title, bool completed, String description) {
-    return Row(
-      children: [
-        Icon(
-          completed ? Icons.check_circle : Icons.circle_outlined,
-          size: 16,
-          color: completed ? Colors.green : Colors.grey,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            '$title: $description',
-            style: TextStyle(
-              color: completed ? Colors.black87 : Colors.grey[600],
-              decoration: completed ? TextDecoration.lineThrough : null,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      decoration: BoxDecoration(
+        color: completed ? Colors.green.withOpacity(0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Icon(
+              completed ? Icons.check_circle : Icons.circle_outlined,
+              key: ValueKey(completed),
+              size: 16,
+              color: completed ? Colors.green : Colors.grey,
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$title: $description',
+              style: TextStyle(
+                color: completed ? Colors.black87 : Colors.grey[600],
+                decoration: completed ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildCulturalHint(BuildContext context) {
-    // Extract pattern type block
     final patternBlock = widget.blockCollection.blocks.firstWhere(
       (b) => b.type == BlockType.pattern,
       orElse: () => Block(
@@ -210,7 +320,7 @@ class _BlocksWorkspaceState extends State<BlocksWorkspace> {
         properties: {},
         connections: [],
         iconPath: '',
-        color: Colors.grey,
+        colorHex: '#808080', // Fixed: Added required colorHex parameter
       ),
     );
 

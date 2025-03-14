@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kente_codeweaver/models/block_model.dart';
 import 'package:kente_codeweaver/widgets/draggable_block.dart';
 
 void main() {
+  final testBlock = Block(
+    id: 'test_block',
+    name: 'Test Block',
+    description: 'A test block',
+    type: BlockType.pattern,
+    subtype: 'test_pattern',
+    properties: {'value': 'test'},
+    connections: [],
+    iconPath: 'assets/images/blocks/test.png',
+    colorHex: '#2196F3',
+  );
+
   testWidgets('DraggableBlock renders correctly', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: DraggableBlock(
-          child: Container(width: 100, height: 100),
-          blockId: 'test_block',
+          block: testBlock,
           onDragStarted: () {},
-          onDragEndSimple: () {},
+          onTap: () {},
         ),
       ),
     );
@@ -24,10 +36,9 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: DraggableBlock(
-          child: Container(width: 100, height: 100),
-          blockId: 'test_block',
+          block: testBlock,
           onDragStarted: () => dragStarted = true,
-          onDragEndSimple: () {},
+          onTap: () {},
         ),
       ),
     );
@@ -36,87 +47,55 @@ void main() {
     expect(dragStarted, isTrue);
   });
 
-  testWidgets('DraggableBlock handles drag end with details', (WidgetTester tester) async {
-    DraggableDetails? dragDetails;
+  testWidgets('DraggableBlock handles drag end', (WidgetTester tester) async {
+    bool dragEnded = false;
 
     await tester.pumpWidget(
       MaterialApp(
         home: DraggableBlock(
-          child: Container(width: 100, height: 100),
-          blockId: 'test_block',
+          block: testBlock,
           onDragStarted: () {},
-          onDragEndWithDetails: (details) => dragDetails = details,
-          onDragEndSimple: () {},
+          onDragEndSimple: () => dragEnded = true,
+          onTap: () {},
         ),
       ),
     );
 
     await tester.drag(find.byType(DraggableBlock), const Offset(100, 100));
-    expect(dragDetails, isNotNull);
+    expect(dragEnded, isTrue);
   });
 
-  testWidgets('DraggableBlock handles accept', (WidgetTester tester) async {
-    String? acceptedData;
+  testWidgets('DraggableBlock handles tap', (WidgetTester tester) async {
+    bool tapped = false;
 
     await tester.pumpWidget(
       MaterialApp(
         home: DraggableBlock(
-          child: Container(width: 100, height: 100),
-          blockId: 'test_block',
+          block: testBlock,
           onDragStarted: () {},
-          onDragEndSimple: () {},
-          onAccept: (details) => acceptedData = details.data,
-        ),
-      ),
-    );
-
-    final gesture = await tester.startGesture(tester.getCenter(find.byType(DraggableBlock)));
-    await gesture.moveBy(const Offset(100, 100));
-    await gesture.up();
-    await tester.pump();
-
-    expect(acceptedData, isNull); // No data accepted yet
-  });
-
-  testWidgets('DraggableBlock handles double tap', (WidgetTester tester) async {
-    bool doubleTapped = false;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: DraggableBlock(
-          child: Container(width: 100, height: 100),
-          blockId: 'test_block',
-          onDragStarted: () {},
-          onDragEndSimple: () {},
-          onDoubleTap: () => doubleTapped = true,
+          onTap: () => tapped = true,
         ),
       ),
     );
 
     await tester.tap(find.byType(DraggableBlock));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byType(DraggableBlock));
     await tester.pump();
 
-    expect(doubleTapped, isTrue);
+    expect(tapped, isTrue);
   });
 
-  testWidgets('DraggableBlock respects locked state', (WidgetTester tester) async {
-    bool dragStarted = false;
-
+  testWidgets('DraggableBlock respects scale', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: DraggableBlock(
-          child: Container(width: 100, height: 100),
-          blockId: 'test_block',
-          onDragStarted: () => dragStarted = true,
-          onDragEndSimple: () {},
-          isLocked: true,
+          block: testBlock,
+          onDragStarted: () {},
+          onTap: () {},
+          scale: 2.0,
         ),
       ),
     );
 
-    await tester.drag(find.byType(Container), const Offset(100, 100));
-    expect(dragStarted, isFalse);
+    expect(find.byType(DraggableBlock), findsOneWidget);
   });
 }

@@ -9,6 +9,21 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    - lib/deprecated/**
+    - lib/experimental/**
+  errors:
+    deprecated_member_use: info
+    deprecated_member_use_from_same_package: warning
+    unused_import: warning
+    unused_local_variable: warning
+    unused_field: warning
+    undefined_method: error
+    undefined_class: error
+    undefined_named_parameter: error
+    missing_required_argument: error
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
@@ -22,8 +37,44 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # Error prevention
+    always_declare_return_types: true
+    avoid_empty_else: true
+    avoid_relative_lib_imports: true
+    avoid_returning_null_for_future: true
+    avoid_types_as_parameter_names: true
+    cancel_subscriptions: true
+    close_sinks: true
+    valid_regexps: true
+
+    # Style
+    prefer_single_quotes: true
+    prefer_final_fields: true
+    prefer_final_locals: true
+    unnecessary_brace_in_string_interps: true
+    unnecessary_const: true
+    unnecessary_new: true
+    unnecessary_this: true
+    prefer_if_null_operators: true
+    prefer_null_aware_operators: true
+    prefer_spread_collections: true
+    prefer_interpolation_to_compose_strings: true
+
+    # Documentation
+    package_api_docs: true
+    public_member_api_docs: false  # Disabled as it's too verbose for an app
+    slash_for_doc_comments: true
+
+    # Formatting (handled by dart format)
+    prefer_adjacent_string_concatenation: true
+    unnecessary_string_interpolations: true
+
+    # Flutter specific
+    sized_box_for_whitespace: true
+    use_full_hex_values_for_flutter_colors: true
+    use_key_in_widget_constructors: true
+    avoid_print: true  # Use logging instead
+    sort_child_properties_last: true
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

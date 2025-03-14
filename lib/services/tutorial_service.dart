@@ -88,10 +88,8 @@ class TutorialService {
         return 'intermediate_pattern_tutorial';
       case PatternDifficulty.advanced:
         return 'advanced_pattern_tutorial';
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return 'master_pattern_tutorial';
-      default:
-        return 'basic_pattern_tutorial';
     }
   }
   

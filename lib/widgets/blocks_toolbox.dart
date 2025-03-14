@@ -11,6 +11,9 @@ class BlocksToolbox extends StatefulWidget {
   /// Callback when a block is selected
   final Function(Block) onBlockSelected;
 
+  /// Callback when a block is dragged
+  final Function(Block) onBlockDragged;
+
   /// Current difficulty level, used to filter available blocks
   final PatternDifficulty difficulty;
 
@@ -23,13 +26,22 @@ class BlocksToolbox extends StatefulWidget {
   /// Whether to use expandable categories
   final bool useExpandableCategories;
 
+  /// Whether to show labels
+  final bool showLabels;
+
+  /// Block scale
+  final double blockScale;
+
   const BlocksToolbox({
     super.key,
     required this.onBlockSelected,
+    required this.onBlockDragged,
     required this.difficulty,
     this.selectedCategoryNotifier,
     this.width = 300,
     this.useExpandableCategories = true,
+    this.showLabels = true,
+    this.blockScale = 1.0,
   });
 
   @override
@@ -497,29 +509,29 @@ class _BlocksToolboxState extends State<BlocksToolbox> with SingleTickerProvider
       ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: DraggableBlock(
-        blockId: block.id,
-        onDragStarted: () {},
-        onDragEndSimple: () {},
-        onDoubleTap: () => widget.onBlockSelected(block),
-        child: ListTile(
-          leading: _buildBlockIcon(block),
-          title: Text(
-            block.name,
-            style: const TextStyle(fontSize: 14, color: Colors.black),
-          ),
-          subtitle: widget.difficulty != PatternDifficulty.basic &&
-              block.description.isNotEmpty
-              ? Text(
-            block.description,
-            style: const TextStyle(fontSize: 12, color: Colors.black87),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          )
-              : null,
-          dense: true,
+      child: ListTile(
+        leading: _buildBlockIcon(block),
+        title: Text(
+          block.name,
+          style: const TextStyle(fontSize: 14, color: Colors.black),
+        ),
+        subtitle: widget.difficulty != PatternDifficulty.basic &&
+            block.description.isNotEmpty
+            ? Text(
+          block.description,
+          style: const TextStyle(fontSize: 12, color: Colors.black87),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        )
+            : null,
+        dense: true,
+        trailing: DraggableBlock(
+          block: block,
+          onDragStarted: () => widget.onBlockDragged(block),
           onTap: () => widget.onBlockSelected(block),
-          trailing: const Icon(Icons.add, size: 18, color: Colors.grey),
+          scale: widget.blockScale,
+          showLabel: widget.showLabels,
+          isCollapsed: true,
         ),
       ),
     );

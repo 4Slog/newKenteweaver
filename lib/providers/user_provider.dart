@@ -239,7 +239,7 @@ class UserProvider extends ChangeNotifier {
         return 25;
       case PatternDifficulty.advanced:
         return 50;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return 100;
     }
   }

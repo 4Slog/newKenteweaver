@@ -95,7 +95,7 @@ class ProgressService {
         return completedCount >= 10 && averageScore >= 0.75;
       case PatternDifficulty.advanced:
         return completedCount >= 15 && averageScore >= 0.8;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return false; // Already at max level
     }
   }

@@ -328,6 +328,9 @@ class ContentBlock {
   /// The main text content
   final String text;
   
+  /// Alias for text to maintain compatibility with narration service
+  String get content => text;
+  
   /// Character speaking (for dialogue type)
   final Character? speaker;
   
@@ -342,6 +345,12 @@ class ContentBlock {
   
   /// Sound effect to play with this block
   final String? soundEffectPath;
+  
+  /// Background audio to play with this block
+  final String? backgroundAudio;
+  
+  /// Emotional tone for this content block
+  EmotionalTone get emotionalTone => ttsSettings.tone;
   
   /// Delay before showing this block (in milliseconds)
   final int delay;
@@ -360,10 +369,11 @@ class ContentBlock {
     required this.type,
     required this.text,
     this.speaker,
-    this.ttsSettings = const TTSSettings(),
+    required this.ttsSettings,
     this.backgroundImagePath,
     this.animationPath,
     this.soundEffectPath,
+    this.backgroundAudio,
     this.delay = 0,
     this.displayDuration = 0,
     this.waitForInteraction = false,
@@ -381,6 +391,7 @@ class ContentBlock {
       'backgroundImagePath': backgroundImagePath,
       'animationPath': animationPath,
       'soundEffectPath': soundEffectPath,
+      'backgroundAudio': backgroundAudio,
       'delay': delay,
       'displayDuration': displayDuration,
       'waitForInteraction': waitForInteraction,
@@ -401,6 +412,7 @@ class ContentBlock {
       backgroundImagePath: json['backgroundImagePath'],
       animationPath: json['animationPath'],
       soundEffectPath: json['soundEffectPath'],
+      backgroundAudio: json['backgroundAudio'],
       delay: json['delay'] ?? 0,
       displayDuration: json['displayDuration'] ?? 0,
       waitForInteraction: json['waitForInteraction'] ?? false,
@@ -428,6 +440,7 @@ class ContentBlock {
     String? backgroundImagePath,
     String? animationPath,
     String? soundEffectPath,
+    String? backgroundAudio,
     int? delay,
     int? displayDuration,
     bool? waitForInteraction,
@@ -442,6 +455,7 @@ class ContentBlock {
       backgroundImagePath: backgroundImagePath ?? this.backgroundImagePath,
       animationPath: animationPath ?? this.animationPath,
       soundEffectPath: soundEffectPath ?? this.soundEffectPath,
+      backgroundAudio: backgroundAudio ?? this.backgroundAudio,
       delay: delay ?? this.delay,
       displayDuration: displayDuration ?? this.displayDuration,
       waitForInteraction: waitForInteraction ?? this.waitForInteraction,
@@ -471,6 +485,7 @@ class ContentBlock {
       backgroundImagePath: backgroundImagePath,
       animationPath: animationPath,
       soundEffectPath: soundEffectPath,
+      backgroundAudio: null,
       delay: delay,
       displayDuration: displayDuration,
       waitForInteraction: waitForInteraction,
@@ -501,6 +516,7 @@ class ContentBlock {
       backgroundImagePath: backgroundImagePath,
       animationPath: animationPath,
       soundEffectPath: soundEffectPath,
+      backgroundAudio: null,
       delay: delay,
       displayDuration: displayDuration,
       waitForInteraction: waitForInteraction,
@@ -532,6 +548,7 @@ class ContentBlock {
       backgroundImagePath: backgroundImagePath,
       animationPath: animationPath,
       soundEffectPath: soundEffectPath,
+      backgroundAudio: null,
       delay: delay,
       displayDuration: displayDuration,
       waitForInteraction: waitForInteraction,
@@ -565,6 +582,7 @@ class ContentBlock {
       backgroundImagePath: backgroundImagePath,
       animationPath: animationPath,
       soundEffectPath: soundEffectPath,
+      backgroundAudio: null,
       delay: delay,
       displayDuration: displayDuration,
       waitForInteraction: waitForInteraction,
@@ -597,6 +615,7 @@ class ContentBlock {
       backgroundImagePath: backgroundImagePath,
       animationPath: animationPath,
       soundEffectPath: soundEffectPath,
+      backgroundAudio: null,
       delay: delay,
       displayDuration: displayDuration,
       waitForInteraction: waitForInteraction,
@@ -637,6 +656,7 @@ class ContentBlock {
       backgroundImagePath: backgroundImagePath,
       animationPath: animationPath,
       soundEffectPath: soundEffectPath,
+      backgroundAudio: null,
       delay: delay,
       displayDuration: displayDuration,
       waitForInteraction: waitForInteraction,
@@ -677,6 +697,7 @@ class ContentBlock {
       backgroundImagePath: backgroundImagePath,
       animationPath: animationPath,
       soundEffectPath: soundEffectPath,
+      backgroundAudio: null,
       delay: delay,
       displayDuration: displayDuration,
       waitForInteraction: waitForInteraction,
@@ -1074,6 +1095,7 @@ extension EducationalContentBlock on ContentBlock {
       backgroundImagePath: backgroundImagePath,
       animationPath: animationPath,
       soundEffectPath: soundEffectPath,
+      backgroundAudio: null,
       delay: delay,
       displayDuration: displayDuration,
       waitForInteraction: waitForInteraction,
@@ -1118,6 +1140,7 @@ extension FeedbackContentBlock on ContentBlock {
       animationPath: animationPath,
       soundEffectPath: soundEffectPath ?? (isPositive ? 
         'assets/audio/success.mp3' : 'assets/audio/failure.mp3'),
+      backgroundAudio: null,
       delay: delay,
       displayDuration: displayDuration,
       waitForInteraction: waitForInteraction,

@@ -4,6 +4,7 @@ import '../models/story_model.dart';
 import '../models/pattern_difficulty.dart';
 import '../services/storage_service.dart';
 import '../providers/user_provider.dart';
+import '../models/block_model.dart';
 
 /// Service responsible for managing story progression, including tracking
 /// user progress, persisting choices, and unlocking new content.
@@ -248,7 +249,7 @@ class StoryProgressionService {
         xpGain = 200;
         _userProvider.unlockAchievement('advanced_story_complete');
         break;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         xpGain = 500;
         _userProvider.unlockAchievement('master_story_complete');
         break;
@@ -593,7 +594,7 @@ class StoryProgressionService {
         return 2;
       case PatternDifficulty.advanced:
         return 3;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return 4;
     }
   }
@@ -716,7 +717,7 @@ class StoryProgressionService {
         id: 'master_patterns',
         title: 'Master Weaver Patterns',
         description: 'Create museum-quality traditional patterns',
-        difficulty: PatternDifficulty.master,
+        difficulty: PatternDifficulty.expert,
         concepts: ['loop', 'functions', 'pattern', 'debug'],
         isPremium: true,
       ),
@@ -729,5 +730,119 @@ class StoryProgressionService {
     _unlockedStoriesCache.clear();
     _storyNodeCache.clear();
     _storyModelCache.clear();
+  }
+
+  /// Prepares a challenge for a given story point
+  Future<Map<String, dynamic>> prepareChallenge(String storyPoint) async {
+    final storyNode = await _getStoryNode(storyPoint);
+    final userProgress = await _getUserProgress(storyPoint);
+    
+    return {
+      'story_point': storyPoint,
+      'title': storyNode.title,
+      'content': storyNode.content,
+      'difficulty': storyNode.difficulty.toString().split('.').last,
+      'required_patterns': storyNode.requiredPatterns,
+      'user_progress': userProgress,
+      'hint': storyNode.hint,
+      'is_premium': storyNode.isPremium,
+    };
+  }
+
+  /// Internal method to get a story node by its ID
+  Future<StoryNode> _getStoryNode(String storyPoint) async {
+    if (_storyNodeCache.containsKey(storyPoint)) {
+      return _storyNodeCache[storyPoint]!;
+    }
+
+    final nodeData = await _storage.read('${_progressPrefix}node_$storyPoint');
+    if (nodeData == null) {
+      throw Exception('Story node not found: $storyPoint');
+    }
+
+    final node = StoryNode.fromJson(json.decode(nodeData));
+    _storyNodeCache[storyPoint] = node;
+    return node;
+  }
+
+  /// Internal method to get user progress for a story point
+  Future<Map<String, dynamic>> _getUserProgress(String storyPoint) async {
+    final progressData = await _storage.read('${_progressPrefix}progress_$storyPoint');
+    if (progressData == null) {
+      return {};
+    }
+    return json.decode(progressData);
+  }
+
+  /// Validates a challenge solution
+  Future<Map<String, dynamic>> validateChallenge({
+    required BlockCollection blocks,
+    required String challengeId,
+  }) async {
+    try {
+      // Evaluate the solution
+      final metrics = await _evaluateSolution(blocks);
+      final requirements = await _getChallengeRequirements(challengeId);
+      
+      // Check if all requirements are met
+      final success = requirements.every((req) {
+        final threshold = req['threshold'] as double;
+        final metricValue = metrics[req['type']] ?? 0.0;
+        return metricValue >= threshold;
+      });
+
+      return {
+        'success': success,
+        'metrics': metrics,
+        'feedback': _generateFeedback(success, metrics, requirements),
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'metrics': {},
+        'feedback': 'There was an error validating your solution.',
+      };
+    }
+  }
+
+  /// Internal method to evaluate a block solution
+  Future<Map<String, double>> _evaluateSolution(BlockCollection blocks) async {
+    // This would contain the actual logic to evaluate the solution
+    // For now, returning a mock evaluation
+    return {
+      'efficiency': 0.8,
+      'correctness': 0.9,
+      'creativity': 0.7,
+    };
+  }
+
+  /// Internal method to get challenge requirements
+  Future<List<Map<String, dynamic>>> _getChallengeRequirements(String challengeId) async {
+    // This would fetch the actual requirements from storage
+    // For now, returning mock requirements
+    return [
+      {'type': 'efficiency', 'threshold': 0.7},
+      {'type': 'correctness', 'threshold': 0.8},
+    ];
+  }
+
+  /// Internal method to generate feedback
+  String _generateFeedback(
+    bool success,
+    Map<String, double> metrics,
+    List<Map<String, dynamic>> requirements,
+  ) {
+    if (success) {
+      return 'Great job! You\'ve met all the requirements.';
+    } else {
+      final unmetRequirements = requirements
+          .where((req) => 
+            !metrics.containsKey(req['type']) || 
+            metrics[req['type']]! < req['threshold']
+          )
+          .map((req) => req['type'])
+          .join(', ');
+      return 'Keep trying! Focus on improving: $unmetRequirements';
+    }
   }
 }

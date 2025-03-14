@@ -194,6 +194,10 @@ class _PatternCreationWorkspaceState extends State<PatternCreationWorkspace> {
     }
   }
 
+  void _handleBlockDragged(Block block) {
+    // Implementation of _handleBlockDragged method
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -218,6 +222,7 @@ class _PatternCreationWorkspaceState extends State<PatternCreationWorkspace> {
                   if (!widget.readOnly)
                     BlocksToolbox(
                       onBlockSelected: _handleAddBlock,
+                      onBlockDragged: _handleBlockDragged,
                       difficulty: widget.difficulty,
                       width: 300,
                     ),

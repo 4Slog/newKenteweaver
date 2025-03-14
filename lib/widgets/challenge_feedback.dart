@@ -127,7 +127,7 @@ class ChallengeFeedback extends StatelessWidget {
         case PatternDifficulty.intermediate:
           return Colors.green[100]!;
         case PatternDifficulty.advanced:
-        case PatternDifficulty.master:
+        case PatternDifficulty.expert:
           return Colors.green[200]!;
       }
     } else {
@@ -137,7 +137,7 @@ class ChallengeFeedback extends StatelessWidget {
         case PatternDifficulty.intermediate:
           return Colors.orange[100]!;
         case PatternDifficulty.advanced:
-        case PatternDifficulty.master:
+        case PatternDifficulty.expert:
           return Colors.orange[200]!;
       }
     }
@@ -151,7 +151,7 @@ class ChallengeFeedback extends StatelessWidget {
         case PatternDifficulty.intermediate:
           return Icons.star;
         case PatternDifficulty.advanced:
-        case PatternDifficulty.master:
+        case PatternDifficulty.expert:
           return Icons.workspace_premium;
       }
     }
@@ -173,7 +173,7 @@ class ChallengeFeedback extends StatelessWidget {
       case PatternDifficulty.intermediate:
         return Icons.trending_up;
       case PatternDifficulty.advanced:
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return Icons.workspace_premium;
     }
   }
@@ -186,7 +186,7 @@ class ChallengeFeedback extends StatelessWidget {
         return Colors.blue;
       case PatternDifficulty.advanced:
         return Colors.purple;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return Colors.deepPurple;
     }
   }
@@ -199,7 +199,7 @@ class ChallengeFeedback extends StatelessWidget {
         return 'Intermediate Challenge';
       case PatternDifficulty.advanced:
         return 'Master Weaver Level';
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         return 'Kente Mastery';
     }
   }

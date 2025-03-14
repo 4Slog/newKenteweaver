@@ -15,9 +15,10 @@ class ConnectedBlock extends StatefulWidget {
   final bool isSelected;
   final VoidCallback? onTap;
   final bool highlightConnections;
+  final bool showPreview;
 
   const ConnectedBlock({
-    Key? key,
+    super.key,
     required this.block,
     this.onDelete,
     required this.onValueChanged,
@@ -29,15 +30,16 @@ class ConnectedBlock extends StatefulWidget {
     this.isSelected = false,
     this.onTap,
     this.highlightConnections = false,
-  }) : super(key: key);
+    this.showPreview = false,
+  });
 
   @override
   State<ConnectedBlock> createState() => _ConnectedBlockState();
 }
 
 class _ConnectedBlockState extends State<ConnectedBlock> with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
+  late final AnimationController _animationController;
+  late final Animation<double> _scaleAnimation;
   bool _isHovering = false;
   String? _hoveredConnectionId;
 
@@ -79,16 +81,12 @@ class _ConnectedBlockState extends State<ConnectedBlock> with SingleTickerProvid
   }
 
   Color _getDifficultyColor(BuildContext context) {
-    switch (widget.difficulty) {
-      case PatternDifficulty.basic:
-        return AppTheme.kenteGold;
-      case PatternDifficulty.intermediate:
-        return AppTheme.kenteRed;
-      case PatternDifficulty.advanced:
-        return AppTheme.kenteGreen;
-      case PatternDifficulty.master:
-        return AppTheme.kenteBlue;
-    }
+    return switch (widget.difficulty) {
+      PatternDifficulty.basic => AppTheme.kenteGold,
+      PatternDifficulty.intermediate => AppTheme.kenteRed,
+      PatternDifficulty.advanced => AppTheme.kenteGreen,
+      PatternDifficulty.expert => AppTheme.kenteBlue,
+    };
   }
 
   @override
@@ -114,8 +112,8 @@ class _ConnectedBlockState extends State<ConnectedBlock> with SingleTickerProvid
                   color: widget.isSelected
                       ? difficultyColor
                       : _isHovering
-                      ? difficultyColor.withOpacity(0.5)
-                      : Colors.transparent,
+                          ? difficultyColor.withValues(alpha: 128)
+                          : Colors.transparent,
                   width: 2,
                 ),
               ),
@@ -129,14 +127,14 @@ class _ConnectedBlockState extends State<ConnectedBlock> with SingleTickerProvid
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: SizedBox(
-                        width: 220, // Match the width used for positioning
-                        height: 80, // Adjusted height for connections
+                        width: 220,
+                        height: 80,
                         child: Stack(
                           children: widget.block.connections.map((connection) {
                             return Positioned(
-                              left: connection.position.dx * 220, // Width of block
-                              top: connection.position.dy * 80, // Adjusted height
-                              child: _buildConnectionPoint(connection),
+                              left: connection.position.dx * 220,
+                              top: connection.position.dy * 80,
+                              child: _buildConnection(connection),
                             );
                           }).toList(),
                         ),
@@ -154,7 +152,7 @@ class _ConnectedBlockState extends State<ConnectedBlock> with SingleTickerProvid
   Widget _buildBlockHeader(BuildContext context, Color difficultyColor) {
     return Container(
       decoration: BoxDecoration(
-        color: difficultyColor.withOpacity(0.1),
+        color: difficultyColor.withValues(alpha: 26),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(12),
           topRight: Radius.circular(12),
@@ -171,10 +169,10 @@ class _ConnectedBlockState extends State<ConnectedBlock> with SingleTickerProvid
         ),
         trailing: widget.onDelete != null
             ? IconButton(
-          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-          onPressed: widget.onDelete,
-          tooltip: 'Delete block',
-        )
+                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                onPressed: widget.onDelete,
+                tooltip: 'Delete block',
+              )
             : null,
       ),
     );
@@ -368,56 +366,90 @@ class _ConnectedBlockState extends State<ConnectedBlock> with SingleTickerProvid
     return const SizedBox.shrink();
   }
 
-  Widget _buildConnectionPoint(BlockConnection connection) {
+  Widget _buildConnection(BlockConnection connection) {
     final isConnected = connection.connectedToId != null;
     final isHovered = _hoveredConnectionId == connection.id;
     final difficultyColor = _getDifficultyColor(context);
-
+    
     return MouseRegion(
       onEnter: (_) => setState(() => _hoveredConnectionId = connection.id),
       onExit: (_) => setState(() => _hoveredConnectionId = null),
       child: GestureDetector(
         onPanStart: (_) => widget.onConnectionDragStart(widget.block.id, connection.id),
         onPanUpdate: (details) => widget.onConnectionDragUpdate(details.globalPosition),
-        onPanEnd: (_) => widget.onConnectionDragCancel(),
+        onPanEnd: (_) => widget.onConnectionDragEnd(widget.block.id, connection.id),
         onPanCancel: widget.onConnectionDragCancel,
-        child: AnimatedContainer(
+        child: TweenAnimationBuilder<double>(
           duration: const Duration(milliseconds: 200),
-          width: isHovered ? 16 : 14,
-          height: isHovered ? 16 : 14,
-          decoration: BoxDecoration(
-            color: isConnected
-                ? difficultyColor
-                : (isHovered ? Colors.grey.shade600 : Colors.grey.shade400),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white,
-              width: 2,
-            ),
-            boxShadow: isHovered || isConnected || widget.highlightConnections
-                ? [
-              BoxShadow(
-                color: (isConnected ? difficultyColor : Colors.grey).withOpacity(0.3),
-                blurRadius: 4,
-                spreadRadius: 1,
-              )
-            ]
-                : null,
+          tween: Tween<double>(
+            begin: 0.0,
+            end: isHovered || isConnected ? 1.0 : 0.0,
           ),
-          child: Center(
-            child: Icon(
-              connection.type == ConnectionType.input
-                  ? Icons.arrow_back
-                  : connection.type == ConnectionType.output
-                  ? Icons.arrow_forward
-                  : Icons.swap_horiz,
-              size: 8,
-              color: Colors.white,
-            ),
-          ),
+          curve: Curves.easeOutBack,
+          builder: (context, value, child) {
+            return Container(
+              width: 14 + (value * 2),
+              height: 14 + (value * 2),
+              decoration: BoxDecoration(
+                color: isConnected
+                    ? difficultyColor
+                    : (isHovered ? Colors.grey.shade600 : Colors.grey.shade400),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white,
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: (isConnected ? difficultyColor : Colors.grey)
+                        .withOpacity(0.3 + (value * 0.2)),
+                    blurRadius: 4 + (value * 2),
+                    spreadRadius: 1 + value,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    _getConnectionIcon(connection.type, isConnected),
+                    key: ValueKey('$connection.type_$isConnected'),
+                    size: 8 + (value * 2),
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
+  }
+
+  IconData _getConnectionIcon(ConnectionType type, bool isConnected) {
+    if (isConnected) {
+      switch (type) {
+        case ConnectionType.input:
+          return Icons.input;
+        case ConnectionType.output:
+          return Icons.output;
+        case ConnectionType.both:
+          return Icons.compare_arrows;
+        case ConnectionType.none:
+          return Icons.block;
+      }
+    } else {
+      switch (type) {
+        case ConnectionType.input:
+          return Icons.arrow_back;
+        case ConnectionType.output:
+          return Icons.arrow_forward;
+        case ConnectionType.both:
+          return Icons.swap_horiz;
+        case ConnectionType.none:
+          return Icons.block;
+      }
+    }
   }
 
   String _getPatternDescription() {

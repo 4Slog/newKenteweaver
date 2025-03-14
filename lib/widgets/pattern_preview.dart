@@ -42,122 +42,118 @@ class PatternPreview extends StatelessWidget {
     );
   }
 
-  Widget _buildControls() {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 8,
-      children: [
-        ElevatedButton.icon(
-          onPressed: () {
-            onPatternUpdated({
-              ...currentPattern,
-              'scale': (currentPattern['scale'] ?? 1.0) * 1.2,
-            });
-          },
-          icon: const Icon(Icons.zoom_in),
-          label: const Text('Zoom In'),
+  Widget _buildPatternPreview() {
+    if (_patternData == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(8),
         ),
-        ElevatedButton.icon(
-          onPressed: () {
-            onPatternUpdated({
-              ...currentPattern,
-              'scale': (currentPattern['scale'] ?? 1.0) / 1.2,
-            });
-          },
-          icon: const Icon(Icons.zoom_out),
-          label: const Text('Zoom Out'),
+        child: Center(
+          child: Text(
+            'Pattern: ${_patternInfo?['name'] ?? widget.patternId}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+      );
+    }
+
+    return CustomPaint(
+      size: Size(widget.width - 24, widget.height - (widget.showMetadata ? 80 : 24)),
+      painter: PatternPainter(
+        grid: _patternData!['grid'] as List<List<int>>,
+        colors: _getPatternColors(),
+      ),
+    );
+  }
+
+  List<Color> _getPatternColors() {
+    // Default Kente-inspired colors
+    return [
+      Colors.black,
+      Colors.yellow[700]!,
+      Colors.red[900]!,
+      Colors.green[800]!,
+    ];
+  }
+
+  Widget _buildMetadata() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _patternInfo?['name'] ?? 'Unknown Pattern',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _patternInfo?['meaning'] ?? 'No description available',
+          style: Theme.of(context).textTheme.bodySmall,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Icon(
+              Icons.code,
+              size: 16,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                _patternInfo?['codeRelation'] ?? 'Basic coding concepts',
+                style: Theme.of(context).textTheme.bodySmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _PatternPainter extends CustomPainter {
-  final Map<String, dynamic> pattern;
+class PatternPainter extends CustomPainter {
+  final List<List<int>> grid;
+  final List<Color> colors;
 
-  _PatternPainter({required this.pattern});
+  PatternPainter({
+    required this.grid,
+    required this.colors,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
+    final cellWidth = size.width / grid[0].length;
+    final cellHeight = size.height / grid.length;
 
-    final scale = pattern['scale'] ?? 1.0;
-    final center = Offset(size.width / 2, size.height / 2);
+    for (var y = 0; y < grid.length; y++) {
+      for (var x = 0; x < grid[y].length; x++) {
+        final value = grid[y][x];
+        if (value > 0 && value < colors.length) {
+          final paint = Paint()
+            ..color = colors[value]
+            ..style = PaintingStyle.fill;
 
-    // Draw grid
-    _drawGrid(canvas, size, paint);
-
-    // Draw pattern elements
-    if (pattern.containsKey('elements')) {
-      for (final element in pattern['elements'] as List<dynamic>) {
-        _drawElement(canvas, center, element as Map<String, dynamic>, scale, paint);
+          canvas.drawRect(
+            Rect.fromLTWH(
+              x * cellWidth,
+              y * cellHeight,
+              cellWidth,
+              cellHeight,
+            ),
+            paint,
+          );
+        }
       }
     }
   }
 
-  void _drawGrid(Canvas canvas, Size size, Paint paint) {
-    final gridSize = 20.0;
-    paint.color = Colors.grey.withOpacity(0.2);
-
-    for (double x = 0; x < size.width; x += gridSize) {
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, size.height),
-        paint,
-      );
-    }
-
-    for (double y = 0; y < size.height; y += gridSize) {
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        paint,
-      );
-    }
-  }
-
-  void _drawElement(Canvas canvas, Offset center, Map<String, dynamic> element,
-      double scale, Paint paint) {
-    final type = element['type'] as String;
-    final position = element['position'] as Map<String, dynamic>;
-    final x = (position['x'] as double) * scale + center.dx;
-    final y = (position['y'] as double) * scale + center.dy;
-
-    paint.color = Color(int.parse(element['color'] as String));
-
-    switch (type) {
-      case 'square':
-        final size = (element['size'] as double) * scale;
-        canvas.drawRect(
-          Rect.fromCenter(
-            center: Offset(x, y),
-            width: size,
-            height: size,
-          ),
-          paint,
-        );
-        break;
-      case 'circle':
-        final radius = (element['radius'] as double) * scale;
-        canvas.drawCircle(Offset(x, y), radius, paint);
-        break;
-      case 'triangle':
-        final size = (element['size'] as double) * scale;
-        final path = Path()
-          ..moveTo(x, y - size / 2)
-          ..lineTo(x - size / 2, y + size / 2)
-          ..lineTo(x + size / 2, y + size / 2)
-          ..close();
-        canvas.drawPath(path, paint);
-        break;
-    }
-  }
-
   @override
-  bool shouldRepaint(_PatternPainter oldDelegate) {
-    return oldDelegate.pattern != pattern;
+  bool shouldRepaint(PatternPainter oldDelegate) {
+    return oldDelegate.grid != grid || oldDelegate.colors != colors;
   }
 }

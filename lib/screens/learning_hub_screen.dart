@@ -64,7 +64,6 @@ class _LearningHubState extends State<LearningHub> {
                   BreadcrumbItem(
                     label: 'Learning Hub',
                     fallbackIcon: Icons.school,
-                    iconAsset: 'assets/images/navigation/learning_hub_breadcrumb.png',
                   ),
                 ],
               ),
@@ -195,7 +194,7 @@ class _LearningHubState extends State<LearningHub> {
         iconData = Icons.star;
         color = Colors.red;
         break;
-      case PatternDifficulty.master:
+      case PatternDifficulty.expert:
         iconData = Icons.auto_awesome;
         color = Colors.purple;
         break;

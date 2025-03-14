@@ -1,14 +1,17 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pattern_difficulty.dart';
+import '../services/gemini_service.dart';
+import '../services/storage_service.dart';
+import '../services/logging_service.dart';
 
 /// Service for adaptive learning features
 class AdaptiveLearningService extends ChangeNotifier {
-  static final AdaptiveLearningService _instance = AdaptiveLearningService._internal();
-  factory AdaptiveLearningService() => _instance;
-  
-  AdaptiveLearningService._internal();
+  final GeminiService _geminiService;
+  final StorageService _storageService;
+  final LoggingService _loggingService;
   
   // User's concept mastery levels (0.0 to 1.0)
   Map<String, double> _conceptMastery = {};
@@ -22,262 +25,330 @@ class AdaptiveLearningService extends ChangeNotifier {
   // User's preferences
   Map<String, dynamic> _preferences = {};
   
-  // Getters
-  Map<String, double> get conceptMastery => _conceptMastery;
-  List<Map<String, dynamic>> get interactionHistory => _interactionHistory;
-  PatternDifficulty get currentDifficulty => _currentDifficulty;
-  Map<String, dynamic> get preferences => _preferences;
+  // Learning objectives and benchmarks
+  static final Map<String, LearningObjective> _learningObjectives = {
+    'sequences': LearningObjective(
+      id: 'sequences',
+      name: 'Pattern Sequences',
+      description: 'Understanding and creating basic pattern sequences',
+      levels: [
+        'Recognize basic patterns',
+        'Create simple sequences',
+        'Modify existing patterns',
+        'Optimize pattern sequences',
+      ],
+      benchmarks: {
+        'basic': 0.3,
+        'intermediate': 0.6,
+        'advanced': 0.8,
+        'master': 0.95,
+      },
+      prerequisites: [],
+    ),
+    'loops': LearningObjective(
+      id: 'loops',
+      name: 'Pattern Repetition',
+      description: 'Using loops to create repeated patterns',
+      levels: [
+        'Understand loop concept',
+        'Create basic loops',
+        'Nest loops for complex patterns',
+        'Optimize loop efficiency',
+      ],
+      benchmarks: {
+        'basic': 0.3,
+        'intermediate': 0.6,
+        'advanced': 0.8,
+        'master': 0.95,
+      },
+      prerequisites: ['sequences'],
+    ),
+    'conditions': LearningObjective(
+      id: 'conditions',
+      name: 'Conditional Logic',
+      description: 'Using conditions to create dynamic patterns',
+      levels: [
+        'Understand conditional statements',
+        'Apply simple conditions',
+        'Combine multiple conditions',
+        'Create complex conditional logic',
+      ],
+      benchmarks: {
+        'basic': 0.3,
+        'intermediate': 0.6,
+        'advanced': 0.8,
+        'master': 0.95,
+      },
+      prerequisites: ['loops'],
+    ),
+  };
   
-  /// Initialize the service
-  Future<void> initialize() async {
-    await _loadData();
+  // Singleton pattern with dependency injection
+  static AdaptiveLearningService? _instance;
+  
+  /// Private constructor to enforce singleton pattern
+  AdaptiveLearningService._({
+    required GeminiService geminiService,
+    required StorageService storageService,
+    required LoggingService loggingService,
+  }) : _geminiService = geminiService,
+       _storageService = storageService,
+       _loggingService = loggingService {
+    _loadUserData();
   }
   
-  /// Load data from persistent storage
-  Future<void> _loadData() async {
+  /// Factory constructor to get the singleton instance
+  factory AdaptiveLearningService({
+    required GeminiService geminiService,
+    required StorageService storageService,
+    required LoggingService loggingService,
+  }) {
+    _instance ??= AdaptiveLearningService._(
+      geminiService: geminiService,
+      storageService: storageService,
+      loggingService: loggingService,
+    );
+    return _instance!;
+  }
+  
+  /// Get the user's current difficulty level
+  PatternDifficulty get currentDifficulty => _currentDifficulty;
+  
+  /// Get the user's concept mastery levels
+  Map<String, double> get conceptMastery => Map.unmodifiable(_conceptMastery);
+  
+  /// Get the user's preferences
+  Map<String, dynamic> get preferences => Map.unmodifiable(_preferences);
+  
+  /// Load user data from storage
+  Future<void> _loadUserData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      
       // Load concept mastery
-      final conceptMasteryJson = prefs.getString('concept_mastery');
-      if (conceptMasteryJson != null) {
-        final Map<String, dynamic> data = json.decode(conceptMasteryJson);
-        _conceptMastery = data.map((key, value) => MapEntry(key, value.toDouble()));
-      } else {
-        _initializeDefaultConceptMastery();
+      final conceptData = await _storageService.read('concept_mastery');
+      if (conceptData != null) {
+        _conceptMastery = Map<String, double>.from(jsonDecode(conceptData));
       }
       
       // Load interaction history
-      final historyJson = prefs.getString('interaction_history');
-      if (historyJson != null) {
-        final List<dynamic> data = json.decode(historyJson);
-        _interactionHistory = data.cast<Map<String, dynamic>>();
+      final historyData = await _storageService.read('interaction_history');
+      if (historyData != null) {
+        _interactionHistory = List<Map<String, dynamic>>.from(jsonDecode(historyData));
       }
       
       // Load difficulty level
-      final difficultyStr = prefs.getString('current_difficulty');
-      if (difficultyStr != null) {
-        _currentDifficulty = _parseDifficulty(difficultyStr);
+      final difficultyData = await _storageService.read('current_difficulty');
+      if (difficultyData != null) {
+        _currentDifficulty = PatternDifficulty.values.firstWhere(
+          (d) => d.toString() == difficultyData,
+          orElse: () => PatternDifficulty.basic,
+        );
       }
       
       // Load preferences
-      final preferencesJson = prefs.getString('learning_preferences');
-      if (preferencesJson != null) {
-        _preferences = json.decode(preferencesJson);
-      } else {
-        _initializeDefaultPreferences();
+      final prefsData = await _storageService.read('learning_preferences');
+      if (prefsData != null) {
+        _preferences = jsonDecode(prefsData);
       }
       
-      debugPrint('Adaptive learning service initialized successfully');
+      notifyListeners();
     } catch (e) {
-      debugPrint('Error initializing adaptive learning service: $e');
-      // Set defaults if there's an error
-      _initializeDefaultConceptMastery();
-      _initializeDefaultPreferences();
+      _loggingService.log('Failed to load user data: $e');
     }
   }
   
-  /// Initialize default concept mastery levels
-  void _initializeDefaultConceptMastery() {
-    _conceptMastery = {
-      'pattern_creation': 0.0,
-      'color_selection': 0.0,
-      'loop_usage': 0.0,
-      'row_column_usage': 0.0,
-      'cultural_understanding': 0.0,
-    };
-  }
-  
-  /// Initialize default preferences
-  void _initializeDefaultPreferences() {
-    _preferences = {
-      'hint_frequency': 'normal', // 'frequent', 'normal', 'minimal'
-      'preferred_learning_style': 'visual', // 'visual', 'interactive', 'reading'
-      'cultural_context_level': 'detailed', // 'minimal', 'basic', 'detailed'
-      'challenge_difficulty': 'adaptive', // 'easy', 'moderate', 'hard', 'adaptive'
-    };
-  }
-  
-  /// Parse difficulty string to enum
-  PatternDifficulty _parseDifficulty(String difficultyStr) {
-    switch (difficultyStr.toLowerCase()) {
-      case 'basic':
-        return PatternDifficulty.basic;
-      case 'intermediate':
-        return PatternDifficulty.intermediate;
-      case 'advanced':
-        return PatternDifficulty.advanced;
-      case 'master':
-        return PatternDifficulty.master;
-      default:
-        return PatternDifficulty.basic;
-    }
-  }
-  
-  /// Save data to persistent storage
-  Future<void> _saveData() async {
+  /// Save user data to storage
+  Future<void> _saveUserData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      
-      // Save concept mastery
-      await prefs.setString('concept_mastery', json.encode(_conceptMastery));
-      
-      // Save interaction history (limit to last 100 interactions)
-      if (_interactionHistory.length > 100) {
-        _interactionHistory = _interactionHistory.sublist(_interactionHistory.length - 100);
-      }
-      await prefs.setString('interaction_history', json.encode(_interactionHistory));
-      
-      // Save difficulty level
-      await prefs.setString('current_difficulty', _currentDifficulty.toString().split('.').last);
-      
-      // Save preferences
-      await prefs.setString('learning_preferences', json.encode(_preferences));
+      await _storageService.write('concept_mastery', jsonEncode(_conceptMastery));
+      await _storageService.write('interaction_history', jsonEncode(_interactionHistory));
+      await _storageService.write('current_difficulty', _currentDifficulty.toString());
+      await _storageService.write('learning_preferences', jsonEncode(_preferences));
     } catch (e) {
-      debugPrint('Error saving adaptive learning data: $e');
+      _loggingService.log('Failed to save user data: $e');
     }
   }
   
-  /// Update concept mastery level
-  Future<void> updateConceptMastery(String concept, double increment) async {
-    if (!_conceptMastery.containsKey(concept)) {
-      _conceptMastery[concept] = 0.0;
+  /// Get the mastery level for a specific concept
+  double getConceptMastery(String conceptId) {
+    return _conceptMastery[conceptId] ?? 0.0;
+  }
+  
+  /// Update the mastery level for a specific concept
+  Future<void> updateConceptMastery({
+    required String conceptId,
+    required double performance,
+    double learningRate = 0.1,
+  }) async {
+    // Get current mastery level
+    double currentMastery = _conceptMastery[conceptId] ?? 0.0;
+    
+    // Calculate mastery update
+    double masteryUpdate = learningRate * performance;
+    
+    // Apply diminishing returns for higher mastery levels
+    if (currentMastery > 0.7) {
+      masteryUpdate *= (1.0 - currentMastery);
     }
     
-    // Update mastery level (clamped between 0.0 and 1.0)
-    _conceptMastery[concept] = (_conceptMastery[concept]! + increment).clamp(0.0, 1.0);
+    // Update mastery level
+    double newMastery = (currentMastery + masteryUpdate).clamp(0.0, 1.0);
+    _conceptMastery[conceptId] = newMastery;
     
-    // Save data
-    await _saveData();
+    // Record interaction
+    _interactionHistory.add({
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'conceptId': conceptId,
+      'performance': performance,
+      'masteryBefore': currentMastery,
+      'masteryAfter': newMastery,
+    });
     
-    // Check if difficulty level should be updated
-    _checkDifficultyProgression();
+    // Check for difficulty adjustment
+    _checkDifficultyAdjustment();
+    
+    // Save user data
+    await _saveUserData();
     
     notifyListeners();
   }
   
-  /// Record user interaction
-  Future<void> recordInteraction(String type, String itemId, {Map<String, dynamic>? data}) async {
-    final interaction = {
-      'type': type,
-      'itemId': itemId,
-      'timestamp': DateTime.now().toIso8601String(),
-      'data': data ?? {},
-    };
+  /// Check if difficulty level should be adjusted
+  void _checkDifficultyAdjustment() {
+    // Get average mastery level for current difficulty
+    final conceptsForDifficulty = _getConceptsForDifficulty(_currentDifficulty);
+    if (conceptsForDifficulty.isEmpty) return;
     
-    _interactionHistory.add(interaction);
+    double totalMastery = 0.0;
+    int count = 0;
     
-    // Save data
-    await _saveData();
+    for (final conceptId in conceptsForDifficulty) {
+      final mastery = _conceptMastery[conceptId] ?? 0.0;
+      totalMastery += mastery;
+      count++;
+    }
+    
+    final averageMastery = count > 0 ? totalMastery / count : 0.0;
+    
+    // Adjust difficulty if needed
+    if (averageMastery >= 0.8 && _currentDifficulty != PatternDifficulty.expert) {
+      // Increase difficulty
+      _currentDifficulty = PatternDifficulty.values[
+        math.min(_currentDifficulty.index + 1, PatternDifficulty.values.length - 1)
+      ];
+    } else if (averageMastery <= 0.2 && _currentDifficulty != PatternDifficulty.basic) {
+      // Decrease difficulty
+      _currentDifficulty = PatternDifficulty.values[
+        math.max(_currentDifficulty.index - 1, 0)
+      ];
+    }
+  }
+  
+  /// Get concepts for a specific difficulty level
+  List<String> _getConceptsForDifficulty(PatternDifficulty difficulty) {
+    switch (difficulty) {
+      case PatternDifficulty.basic:
+        return ['sequences'];
+      case PatternDifficulty.intermediate:
+        return ['sequences', 'loops'];
+      case PatternDifficulty.advanced:
+        return ['sequences', 'loops', 'conditions'];
+      case PatternDifficulty.expert:
+        return ['sequences', 'loops', 'conditions'];
+      default:
+        return ['sequences'];
+    }
+  }
+  
+  /// Generate a personalized learning path
+  Future<List<String>> generatePersonalizedPath() async {
+    try {
+      // Generate path using Gemini API
+      final response = await _geminiService.generateLearningPath(
+        conceptMastery: _conceptMastery,
+        difficulty: _currentDifficulty,
+        preferences: _preferences,
+      );
+      
+      return List<String>.from(response['path']);
+    } catch (e) {
+      _loggingService.log('Failed to generate learning path: $e');
+      
+      // Fallback to default path
+      return _getDefaultPath();
+    }
+  }
+  
+  /// Get a default learning path
+  List<String> _getDefaultPath() {
+    final availableConcepts = _getConceptsForDifficulty(_currentDifficulty);
+    
+    // Sort concepts by mastery level (lowest first)
+    availableConcepts.sort((a, b) => 
+      (_conceptMastery[a] ?? 0.0).compareTo(_conceptMastery[b] ?? 0.0)
+    );
+    
+    return availableConcepts;
   }
   
   /// Set user preference
   Future<void> setPreference(String key, dynamic value) async {
     _preferences[key] = value;
-    
-    // Save data
-    await _saveData();
-    
+    await _saveUserData();
     notifyListeners();
   }
   
-  /// Check if difficulty level should be updated
-  void _checkDifficultyProgression() {
-    // Calculate average mastery level
-    double avgMastery = 0.0;
-    _conceptMastery.forEach((_, value) {
-      avgMastery += value;
-    });
-    avgMastery /= _conceptMastery.length;
+  /// Get available blocks based on user's progress
+  Future<List<String>> getAvailableBlocks() async {
+    final blocks = <String>[];
     
-    // Update difficulty based on mastery level
-    if (_currentDifficulty == PatternDifficulty.basic && avgMastery >= 0.7) {
-      _currentDifficulty = PatternDifficulty.intermediate;
-      notifyListeners();
-    } else if (_currentDifficulty == PatternDifficulty.intermediate && avgMastery >= 0.8) {
-      _currentDifficulty = PatternDifficulty.advanced;
-      notifyListeners();
-    } else if (_currentDifficulty == PatternDifficulty.advanced && avgMastery >= 0.9) {
-      _currentDifficulty = PatternDifficulty.master;
-      notifyListeners();
+    // Basic blocks always available
+    blocks.add('color');
+    blocks.add('move');
+    
+    // Add blocks based on concept mastery
+    if ((_conceptMastery['sequences'] ?? 0.0) >= 0.3) {
+      blocks.add('repeat');
     }
-  }
-  
-  /// Set difficulty level manually
-  Future<void> setDifficulty(PatternDifficulty difficulty) async {
-    _currentDifficulty = difficulty;
     
-    // Save data
-    await _saveData();
-    
-    notifyListeners();
-  }
-  
-  /// Get recommended hint frequency based on user performance
-  String getRecommendedHintFrequency() {
-    // Calculate average mastery level
-    double avgMastery = 0.0;
-    _conceptMastery.forEach((_, value) {
-      avgMastery += value;
-    });
-    avgMastery /= _conceptMastery.length;
-    
-    // Recommend hint frequency based on mastery level
-    if (avgMastery < 0.3) {
-      return 'frequent';
-    } else if (avgMastery < 0.7) {
-      return 'normal';
-    } else {
-      return 'minimal';
+    if ((_conceptMastery['loops'] ?? 0.0) >= 0.3) {
+      blocks.add('for_loop');
+      blocks.add('while_loop');
     }
-  }
-  
-  /// Get recommended challenge difficulty based on user performance
-  String getRecommendedChallengeDifficulty() {
-    // Calculate average mastery level
-    double avgMastery = 0.0;
-    _conceptMastery.forEach((_, value) {
-      avgMastery += value;
-    });
-    avgMastery /= _conceptMastery.length;
     
-    // Recommend challenge difficulty based on mastery level
-    if (avgMastery < 0.3) {
-      return 'easy';
-    } else if (avgMastery < 0.6) {
-      return 'moderate';
-    } else {
-      return 'hard';
+    if ((_conceptMastery['conditions'] ?? 0.0) >= 0.3) {
+      blocks.add('if');
+      blocks.add('if_else');
     }
-  }
-  
-  /// Get personalized hint based on user performance
-  String getPersonalizedHint(String conceptKey, String defaultHint) {
-    // Get mastery level for the concept
-    final masteryLevel = _conceptMastery[conceptKey] ?? 0.0;
     
-    // Return personalized hint based on mastery level
-    if (masteryLevel < 0.3) {
-      return defaultHint; // Detailed hint for beginners
-    } else if (masteryLevel < 0.7) {
-      // Simplified hint for intermediate users
-      return defaultHint.split('.').first + '.';
-    } else {
-      // Minimal hint for advanced users
-      return 'You\'ve got this!';
-    }
+    return blocks;
   }
   
-  /// Reset all data (for testing)
-  Future<void> resetData() async {
-    _initializeDefaultConceptMastery();
-    _interactionHistory = [];
+  /// Reset user progress
+  Future<void> resetProgress() async {
+    _conceptMastery.clear();
+    _interactionHistory.clear();
     _currentDifficulty = PatternDifficulty.basic;
-    _initializeDefaultPreferences();
     
-    // Save data
-    await _saveData();
-    
+    await _saveUserData();
     notifyListeners();
   }
+}
+
+/// Learning objective model
+class LearningObjective {
+  final String id;
+  final String name;
+  final String description;
+  final List<String> levels;
+  final Map<String, double> benchmarks;
+  final List<String> prerequisites;
+  
+  const LearningObjective({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.levels,
+    required this.benchmarks,
+    required this.prerequisites,
+  });
 }
